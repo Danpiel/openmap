@@ -1298,7 +1298,9 @@ local function Setup()
 			local id = d and d.questMapID
 			if not (active and not anim and id and id ~= 0 and id == map:GetMapID() and map:IsShown()) then return end
 			local u, v, zoom = View()
-			if u and PickMap(u, v, zoom, id) ~= id then
+			-- (or the map opened for the quest, its first frame not drawn yet: shown whole, as Blizzard shows it;
+			-- "Center on player, keep zoom" kept you at your zoom in your own zone, the quest off screen: #255)
+			if u and (not live or PickMap(u, v, zoom, id) ~= id) then
 				local aw, ah = S.ArtSize(id)
 				if aw then SetView(math.min(sc:GetWidth() / aw, sc:GetHeight() / ah), 0.5, 0.5) end
 			end
@@ -1309,6 +1311,7 @@ local function Setup()
 	dp.OnCanvasScaleChanged = Ours("scale changed", ApplyZoom)
 	dp.OnCanvasPanChanged = ApplyView
 	dp.OnMapChanged = function()
+		HookHighlight()                             -- (a highlight pin made since: the toggle reaches it too, #262)
 		ApplyZoom()
 		if mod.OnHostMapChanged then mod.OnHostMapChanged() end
 		if mod.RefreshPortrait then pcall(mod.RefreshPortrait) end   -- (OpenMap's icon only while stitching)
@@ -1321,6 +1324,7 @@ local function Setup()
 		ticker:Hide()
 	end
 	local shown = Ours("map shown", function()
+		HookHighlight()
 		mod.instanceWorldBrowsing = nil
 		mod.instanceMapGeneration = (mod.instanceMapGeneration or 0) + 1
 		if not S.IsBuilt() and map:GetMapID() then sc:OnCanvasSizeChanged() end   -- built on first showing
