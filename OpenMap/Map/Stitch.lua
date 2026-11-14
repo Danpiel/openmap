@@ -3305,7 +3305,8 @@ function S.RefreshFound()
 	for _, pin in ipairs(pins) do
 		if pin.u then
 			if places.foundOnly then
-				if pin.found == nil or not pin.found then pin.found = places.Found(pin.u, pin.v) end
+				-- (an entrance: found too once you've been inside, Dungeons.lua's S.Entered: #256)
+				if pin.found == nil or not pin.found then pin.found = places.Found(pin.u, pin.v) or (S.Entered and S.Entered(pin)) or false end
 				pin:SetShown(pin.found)
 			else
 				pin:Show()

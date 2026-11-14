@@ -2276,6 +2276,26 @@ local function InstanceHere()
 	end
 end
 
+-- a dungeon you've been inside counts as found ("Only places you've found"), remembered per character:
+-- an entrance whose ground the map's explored pieces don't cover (Blackfathom Deeps, under the Zoram
+-- Strand's water; or reached by the group finder) never showed, done or not (#256)
+local function NoteEntered()
+	local inst = InstanceHere()
+	if not inst or inst[1] == 0 or not mod.char then return end
+	mod.char.entered = mod.char.entered or {}
+	if mod.char.entered[inst[1]] then return end
+	mod.char.entered[inst[1]] = true
+	if S.RefreshFound then S.RefreshFound() end
+end
+function S.Entered(pin)
+	local seen = mod.char and mod.char.entered
+	if not seen or not pin.instances then return false end
+	for _, inst in ipairs(pin.instances) do
+		if seen[inst[1]] then return true end
+	end
+	return false
+end
+
 -- The outdoor entrance is a useful world position while the player's coordinates are indoors.
 function mod.InstanceEntranceView()
 	local instanceID = Safe.Value(select(8, GetInstanceInfo()))
@@ -2426,7 +2446,7 @@ function mod:SetupDungeons(worldMap)
 		C_Timer.After(0, function() Recolour() RefreshCard() end)   -- (UnitLevel catches up after the event)
 	end)
 	-- (into a dungeon or out: its floors held, or let go; a moment after the loading screen)
-	local function Rehold() C_Timer.After(2, mod.HoldDungeonHere) end
+	local function Rehold() C_Timer.After(2, function() mod.HoldDungeonHere() NoteEntered() end) end
 	ns.RegisterEvent(events, "PLAYER_ENTERING_WORLD", Rehold)
 	ns.RegisterEvent(events, "ZONE_CHANGED_NEW_AREA", Rehold)
 	Rehold()                                      -- (set up already inside one)
