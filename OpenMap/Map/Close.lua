@@ -799,6 +799,7 @@ function S.SetView(u, v, hu, hv, zoom, steps)
 	steps = steps or zoom
 	local L = S.closeLayers
 	if not L then return end
+	if not ns.Safe.Finite(u, v, hu, hv, zoom) then return end   -- (not a view: #261's NaN)
 	local cv = S.closeView
 	local start = debugprofilestop and debugprofilestop()
 	cv.zoom, cv.time, cv.updates = zoom, GetTime(), (cv.updates or 0) + 1

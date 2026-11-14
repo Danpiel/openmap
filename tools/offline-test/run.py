@@ -89,6 +89,23 @@ steps = L.eval("""function(ns, scenario)
     local ok, err = pcall(function() return ACR:GetOptionsTable("OpenMap", "dialog", "AceGUI-3.0") end)
     if not ok then ERRORS[#ERRORS + 1] = "options: " .. tostring(err) end
     if ok then WalkOptions(err, {}, {}) end
+    -- a view that isn't one (NaN, infinite: a map 0 px across, #260 #261) never reaches the game's map
+    -- lookups, which error on it as the game's do here, nor the close-up layers
+    do
+        local S, nan, inf = ns.MapStitch, 0 / 0, 1 / 0
+        local real = C_Map.GetMapInfoAtPosition
+        C_Map.GetMapInfoAtPosition = function(id, x, y, ...)
+            if x ~= x or y ~= y or x == inf or y == inf then error("bad argument #2 to 'GetMapInfoAtPosition' (must be a finite number)") end
+            if real then return real(id, x, y, ...) end
+        end
+        local okn, en = pcall(function()
+            assert(#S.ChainAt(nan, nan) == 1 and #S.ChainAt(inf, 0.5) == 1)
+            S.ChainAt(0.5, 0.5)
+            if S.SetView then S.SetView(nan, nan, 0.1, 0.1, 46.58) S.SetView(0.5, 0.5, inf, 0.1, 4) end
+        end)
+        C_Map.GetMapInfoAtPosition = real
+        if not okn then ERRORS[#ERRORS + 1] = "NaN view: " .. tostring(en) end
+    end
     for _, cmd in ipairs({ "status", "paint", "news", "forgetflights" }) do
         local ok2, e2 = pcall(SlashCmdList.OPENMAP, cmd)
         if not ok2 then ERRORS[#ERRORS + 1] = "slash " .. cmd .. ": " .. tostring(e2) end

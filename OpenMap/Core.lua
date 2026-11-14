@@ -56,6 +56,16 @@ function Safe.XY(vec)
 	return vec.x, vec.y
 end
 
+-- a plain number that's neither NaN nor infinite (a view worked out while the map is 0 px across
+-- divides by zero: one such view put into the map left it blank until a reload, #260 #261)
+function Safe.Finite(...)
+	for i = 1, select("#", ...) do
+		local n = select(i, ...)
+		if type(n) ~= "number" or Safe.IsSecret(n) or n ~= n or n == math.huge or n == -math.huge then return false end
+	end
+	return true
+end
+
 -- calls fn(...) and returns its first result when it is plain, else nil
 function Safe.Call(fn, ...)
 	if type(fn) ~= "function" then return nil end

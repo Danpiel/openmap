@@ -1,5 +1,15 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Fixed
+
+- **The map loads again for everyone**: for some players since v0.8.9 the map opened blank, with an
+  error about GetMapInfoAtPosition. A view worked out while the map was still 0 px across (a divide
+  by zero) was put into the map, and every view after it was worked out from it, so the map stayed
+  blank. A view that isn't one is never put up now, the map's last view and its saved window place
+  and size are checked as they're read back, and a bad one is forgotten (#260, #261, #263).
+
 ## v0.8.9 (2026-11-14)
 
 ### New

@@ -309,6 +309,7 @@ S.ArtSize = ArtSize
 function S.ChainAt(u, v)
 	local CITY_EDGE = 0.25          -- (not a file local: the file is at Lua's limit of 200)
 	local chain = { WORLD }
+	if not ns.Safe.Finite(u, v) then return chain end   -- (the game errors on a NaN point: #261)
 	local mapID, x, y = WORLD, u, v
 	for _ = 1, 4 do
 		local info = C_Map.GetMapInfoAtPosition(mapID, x, y)

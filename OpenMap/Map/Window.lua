@@ -53,6 +53,12 @@ end
 
 local function Apply()
 	if not map or Maximized() or ours or sizing then return end
+	-- (a place or size saved that isn't one, NaN or infinite, or no size at all: forgotten, or the map would
+	-- be put there every time it opens, blank: #260)
+	local w0, s0 = mod.db.window, mod.db.windowSize
+	if w0 and not ns.Safe.Finite(w0[3], w0[4]) then mod.db.window = false end
+	if s0 and not (ns.Safe.Finite(s0[1], s0[2]) and s0[1] >= 1 and s0[2] >= 1) then mod.db.windowSize = false end
+	if not ns.Safe.Finite(mod.db.windowScale) or mod.db.windowScale <= 0 then mod.db.windowScale = 1 end
 	ours = true
 	if not moveAny then
 		local w = mod.db.window
@@ -181,6 +187,7 @@ local function Grip(corner)
 		if math.abs(map:GetScale() - start.scale) > 0.001 then Finish() return end
 		local x, y = GetCursorPosition()
 		local s = map:GetEffectiveScale()
+		if not ns.Safe.Finite(s) or s <= 0 then return end   -- (no scale yet: a drag by it would be infinite)
 		local dx = (x - start.x) / s
 		local w = math.max(MIN_W, start.w + (left and -dx or dx))
 		local h = math.max(MIN_H, start.h - (y - start.y) / s)

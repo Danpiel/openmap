@@ -39,6 +39,10 @@ class NavigationTests(unittest.TestCase):
             function mod.Glide(u, v, zoom) target = { u, v, zoom } end
             function ns:Print() end
         """)
+        # Core.lua's own Safe.Finite (the views' guard against NaN: #260 #261)
+        core = (ROOT / "Core.lua").read_text(encoding="utf-8")
+        start = core.index("function Safe.Finite(")
+        self.lua.execute("local Safe = ns.Safe\n" + core[start:core.index("\nend\n", start) + 5])
         self.lua.execute((ROOT / "Map/Nav.lua").read_text(encoding="utf-8"),
                          "OpenMap", self.lua.globals().ns)
         self.lua.execute("""
@@ -128,6 +132,23 @@ class NavigationTests(unittest.TestCase):
             local u, v, zoom = mod.SavedView(2)
             assert(u == .5 and v == .5 and zoom == 4)
             assert(mod.SavedView(999) == nil)
+        """)
+
+    def test_a_view_that_is_not_one_is_never_reopened(self):
+        # (#260 #261: a NaN view, from a map 0 px across, saved as it closed left it blank on reopening)
+        self.lua.execute("""
+            local F = ns.Safe.Finite
+            assert(F(1, 0, -2.5) and not F(0 / 0) and not F(1 / 0) and not F(-1 / 0) and not F(nil) and not F(1, 0 / 0))
+            mod.db.reopenView = 'always'
+            mod:OnMapHidden()
+            function mod.ViewNow() return 0 / 0, 0 / 0, 46.58 end
+            mod:OnMapHidden()
+            local u, v, zoom = mod.SavedView()
+            assert(u == .5 and v == .5 and zoom == 4)
+            function mod.ViewNow() return .5, .5, 1 / 0 end
+            mod:OnMapHidden()
+            u, v, zoom = mod.SavedView()
+            assert(zoom == 4)
         """)
 
     def test_inzone_mode_opens_on_the_whole_zone(self):
