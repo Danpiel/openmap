@@ -504,7 +504,10 @@ local groupBlipSizes = setmetatable({}, { __mode = "k" })
 local loweredGroupBlips = setmetatable({}, { __mode = "k" })
 local function BlipOff(unit)
 	if mod.instanceWorldHidden or mod.db[BLIP_UNITS[unit]] == false then return true end
-	-- OpenMap's own arrow up (the map underneath couldn't place you): Blizzard's goes, one arrow not two (#229)
+	-- OpenMap's own arrow up (the map underneath couldn't place you): Blizzard's goes, one arrow not two (#229).
+	-- Not on retail (ns.MapWorld): its zones' rectangles come from the game's chain of maps, which is off
+	-- by tens of yards, so ours could be the one out of place, and only it was left (#254)
+	if ns.MapWorld then return false end
 	return unit == "player" and active and S.PlayerShown and S.PlayerShown() or false
 end
 local function Locked(pin) return pin:IsProtected() and InCombatLockdown() end
