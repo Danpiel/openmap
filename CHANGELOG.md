@@ -15,6 +15,20 @@
   fading in as you zoom out set their opacity in 8 steps instead of on every frame, a third to a half
   fewer calls to the client for a zoom out. By k4m1.
 
+- **No more flight paths at Eastern Plaguelands' towers**: Plaguewood, Northpass, Eastwall and Crown
+  Guard Tower are in the game's flight tables, but no character can learn them and no flight master
+  stands there; they're left out (#264).
+
+- **A dungeon you've been inside counts as found** ("Only places you've found"): Blackfathom Deeps'
+  entrance, under the Zoram Strand's water, never showed, done or not. Counted from your next visit (#256).
+
+- **A quest from the quest log shows its map with "Center on player, keep zoom"**: in your own zone
+  the map opened at the kept zoom on you, the quest off screen; it shows the quest's map whole now, as
+  with the other choices (#255).
+
+- **The zone highlight toggle works again**: with it off, zones could still glow under the cursor, where
+  the game made its highlight after OpenMap set the map up (#262).
+
 ## v0.8.9 (2026-11-14)
 
 ### New

@@ -15,6 +15,17 @@
   fading in as you zoom out set their opacity in 8 steps instead of on every frame, a third to a half
   fewer calls to the client for a zoom out. By k4m1.
 
+- **Your arrow in the right place again**: v0.8.9's "one arrow, not two" hid Blizzard's own arrow on
+  retail too, where OpenMap's could be the one out of place (further north than the minimap); Blizzard's
+  stays on retail now (#254).
+
+- **A quest from the quest log shows its map with "Center on player, keep zoom"**: in your own zone
+  the map opened at the kept zoom on you, the quest off screen; it shows the quest's map whole now, as
+  with the other choices (#255).
+
+- **The zone highlight toggle works again**: with it off, zones could still glow under the cursor, where
+  the game made its highlight after OpenMap set the map up (#262).
+
 ## v0.8.9 (2026-11-14)
 
 ### New
