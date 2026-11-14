@@ -10,6 +10,11 @@
   blank. A view that isn't one is never put up now, the map's last view and its saved window place
   and size are checked as they're read back, and a bad one is forgotten (#260, #261, #263).
 
+- **Fewer hitches zooming out**: the first zoom out of a session made the lettering of every continent
+  and sea name (hundreds of font strings) in one frame; one name is made a frame now. And the tiles
+  fading in as you zoom out set their opacity in 8 steps instead of on every frame, a third to a half
+  fewer calls to the client for a zoom out. By k4m1.
+
 ## v0.8.9 (2026-11-14)
 
 ### New
