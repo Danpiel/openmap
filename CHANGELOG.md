@@ -1,5 +1,15 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Improved
+
+- **Smoother with the map open**: "Quests from every zone" asked the game for the quests of every zone
+  and city in a single frame, half a second after each opening and again after each burst of quest log
+  updates while the map was open (and once more after it closed). The zones are now read a few a frame
+  and the icons put up together once all are in; nothing is read while the map is closed.
+  `/openmap status` says what the last reading cost.
+
 ## v0.8.9 (2026-11-14)
 
 ### New
