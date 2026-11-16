@@ -88,7 +88,7 @@
   tiles baked from the ptBR client's own maps, place names and city banners in Portuguese, as an English
   client's has been (it was every zone's art drawn live: panning at mid zoom took about half the frame
   time). Other languages draw it live as before, until their own tiles are baked. (New textures:
-  restart the game.)
+  restart the game.) By cscoder69, with thanks to developer-felipe, whose #265 took this on first.
 
 - **Less work while the map is closed**: the guild and friends lists are read at most every 30 seconds
   (a raid's roster changes came each time), exploring somewhere recolours the map's art the next time
