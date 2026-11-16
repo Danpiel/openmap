@@ -59,6 +59,9 @@ function mod.Migrate(db)
 	if not db.zoomHidePinsOff then db.zoomHidePins, db.zoomHidePinsOff = false, true end
 	-- (a dungeon's map opens beside the quest log on its Quests tab from v0.8.10, once for every save: the old
 	-- default, Dungeon, written into each, covered the quest log every time; picked again, it's kept)
+	-- (Soften and paper grain off from v0.8.10, once for every save: its blur rests while the map moves, so the
+	-- map went soft each time it stopped, which players took for the map going blurry; turned on again, it stays)
+	if not db.softenOff then db.soften, db.softenOff = false, true end
 	if not db.dockQuests then db.dockQuests = true if db.dungeonDockTab == "dungeon" then db.dungeonDockTab = "quests" end end
 end
 

@@ -111,6 +111,8 @@ steps = L.eval("""function(ns, scenario)
     if (ns.modules.worldmap.db.mapFpsCap or 0) ~= 0 then
         ERRORS[#ERRORS + 1] = "map frame rate cap: " .. tostring(ns.modules.worldmap.db.mapFpsCap) .. " by default, not the game's own limit"
     end
+    -- Soften and paper grain: off by default (its blur rests while the map moves: soft each time it stopped)
+    if ns.modules.worldmap.db.soften ~= false then ERRORS[#ERRORS + 1] = "Soften and paper grain on by default" end
     -- logging out: no NaN or infinite number left in the saved settings, which the game can't read back
     -- (the whole file lost: every setting reset, #306); the rest kept
     do

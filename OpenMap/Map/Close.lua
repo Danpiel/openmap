@@ -28,7 +28,7 @@ d.minimapMix = 0.45             -- how strong the minimap's detail is up close (
 d.minimapDeep = 0.85            -- the most it shows at any zoom (reached at the deepest, where the painted map has nothing left)
 d.minimapFrom = 20              -- the zoom where it starts to mix in (MINI_FROM: what it can be set to)
 d.cityMinimap = true            -- ... over the six major cities' own maps too (off: their own maps alone)
-d.soften = true                 -- soften + paper grain at the closest zoom
+d.soften = false                -- soften + paper grain zoomed in (its blur rests while the map moves)
 d.underground = true            -- caves and pre-instance areas
 d.gapMinimap = false            -- the minimap in land no zone map covers (experimental: off, that land is left as
                                 --  the zone maps' blank parchment, an unfinished map)
@@ -890,7 +890,7 @@ function mod:CloseOptions(opts, get, set, off)
 		hidden = function() return not ns.MapGaps end,   -- (a client with no gaps between its zones)
 		desc = ns.L["Land no zone map covers (west of Searing Gorge, Mount Hyjal ...) shows the game's minimap of it, tinted like the zones around it, instead of blank paper."] }
 	opts.soften = { type = "toggle", name = ns.L["Soften and add paper grain"], order = 52, get = get, set = set, disabled = off,
-		desc = ns.L["At the closest zoom the painted map runs out of pixels: soften it and lay paper grain over it."] }
+		desc = ns.L["Zoomed in, the painted map runs out of pixels: this softens it and lays paper grain over it. The softening rests while the map moves, so the map is sharp while you zoom or pan and softens a moment after it stops. Off (the default): always sharp."] }
 	opts.underground = { type = "toggle", name = ns.L["Caves and dungeon entrances"], order = 53, get = get, set = set, disabled = off,
 		desc = ns.L["Zoom right in on a cave, mine or crypt, or a dungeon's entrance area, and its map surfaces from underground: Blizzard's own where it drew one, else the game's minimap of it. Over one, the zoom goes on past the deepest zoom."] }
 end
