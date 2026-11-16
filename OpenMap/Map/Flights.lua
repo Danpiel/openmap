@@ -61,10 +61,14 @@ local function ReadFound()
 	for id in pairs(seen) do found[id] = true end
 end
 
+-- Once this character has opened a flight master's map, the paths it listed as learned are what count:
+-- the game's own "found" (ReadFound) showed a new character the flight masters another character of the
+-- account had learned (#274), and a learned one could read as not found (#301). Before that, the game's
 local function Known(id)
-	if found[id] then return true end
 	local n = F.nodes[id]
-	return n and mod.char.flightsKnown and mod.char.flightsKnown[n[1]]
+	local learned = mod.char.flightsKnown
+	if learned and next(learned) then return n and learned[n[1]] and true or false end
+	return found[id] and true or false
 end
 
 -- learned ones in their colour, the rest grey; both a size up from the map's other icons and outlined

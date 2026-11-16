@@ -19,10 +19,11 @@ TOL = 20.0   # yards: waypoints kept within this of the real path
 # nodes have): their faction is their mount's (MountCreatureID_0 is a node's Horde mount, _1 its
 # Alliance one, as on every flagged node)
 UNFLAGGED = {3274, 3275} if FOREVER else set()
-# in the tables ahead of their zone: Mount Hyjal (its areas have no level yet in this build); and
 # Powderfuse Port's two, which have no flight master there in game in build 1.60.1 (players' reports,
-# #121 and #132: the port is reached by its boat)
-NOT_YET = {559, 3242, 3274, 3275} if FOREVER else set()
+# #121 and #132: the port is reached by its boat). (Mount Hyjal's two, 559 Summit of Eternity and 3242
+# Tainted Foothills, held back while the zone wasn't open, are flown now: a player's report, #288, at
+# their places on its map, 68.6 44.1 and 55.0 82.7)
+NOT_YET = {3274, 3275} if FOREVER else set()
 OLD = ("Transport", "Quest Path", "zzOLD")     # boats, scripted quest flights, retired nodes
 # flight masters only one class may use; the tables don't say (no condition on the node): Nighthaven's
 # two (Silva Fil'naveth, Bunthen Plainswind) fly druids only, as their gossip does in game
