@@ -159,10 +159,16 @@ end
 -- the first of their files to arrive, showed for a moment between the two
 -- desat: the tiles' own desaturation, the rest of the way from what they're baked at to the setting
 -- (desaturating twice is desaturating once by 1 - (1 - a)(1 - b)), so they serve any Take colour out
--- english: the tiles are baked from the English client's files, names lettered on the art and all; any
--- other language draws the zones live, from the client's own art in its language
+-- english: the tiles are baked from the English client's files, names lettered on the art and all
+-- lettered: tiles in the client's own language: English's, or another language's own set where one is
+-- baked (MapZones\<locale>\, from that client's art: ns.MapZoneArt.locales); any other language draws
+-- the zones live, from the client's own art in its language
 local Baked = { FADE = { 1.2, 1.6 }, WARM = 0.85, tiles = {}, use = false, live = 1, warm = false, busy = false, holding = false,
 	path = TEX .. "MapZones\\", desat = 0, english = not GetLocale or GetLocale():sub(1, 2) == "en" }
+Baked.lettered = Baked.english
+if not Baked.english and ns.MapZoneArt and ns.MapZoneArt.locales and ns.MapZoneArt.locales[GetLocale()] then
+	Baked.path, Baked.lettered = TEX .. "MapZones\\" .. GetLocale() .. "\\", true
+end
 
 -- The live zone layers' regions (tilesRoot, overlayRoot, coreRoot: thousands of textures and their
 -- masks) are anchored only while they can show. Every region is placed on root, and each frame of a
@@ -2905,10 +2911,10 @@ function S.ApplyGrade(strength, desat, unexplored)
 		cities.Banners()
 	end
 	-- the baked art only at the settings it was baked at (unexplored areas hidden: live, piece by piece),
-	-- and on an English client (Baked.english)
+	-- and with tiles in the client's language (Baked.lettered)
 	local art = ns.MapZoneArt
 	Baked.use = (art and Baked.frame and strength == art.colorMatch and desat >= art.desaturate - 0.001
-		and unexplored ~= "hide" and not Baked.noFills and Baked.english) and true or false
+		and unexplored ~= "hide" and not Baked.noFills and Baked.lettered) and true or false
 	local bd = art and math.max(0, (desat - art.desaturate) / (1 - art.desaturate)) or 0
 	if Baked.use and math.abs(bd - Baked.desat) > 0.001 then
 		Baked.desat = bd
