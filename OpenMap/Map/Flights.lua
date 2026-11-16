@@ -17,7 +17,9 @@ mod.defaults.flightTimes = {}   -- "from|to" -> seconds, measured (account-wide)
 
 local SPEED = 30                -- yards a second (classic flights, roughly)
 local ROUTE_COLOR = { 0.95, 0.78, 0.35 }
-local KNOWN_ATLAS = { "TaxiNode_Alliance", "TaxiNode_Horde" }
+-- a flight master: green as the game's own flight map shows one you can fly to (greyed: not learned). The
+-- faction's own icon was red for the Horde, which read as not learned (players' reports)
+local NODE_LOOK = { atlas = "Taxi_Frame_Green", texture = "Interface\\TaxiFrame\\UI-Taxi-Icon-Green" }
 
 local nodeAt = {}               -- node id -> { u, v } on the world (normalized)
 local edges = {}                -- node id -> { { to, path }, ... }
@@ -307,7 +309,7 @@ function mod:BuildFlights()
 			local u, v = S.FromYards(n[2], n[3], n[4])
 			if u then
 				nodeAt[id] = { u, v }
-				local look = { atlas = KNOWN_ATLAS[factionBit], size = SIZE_KNOWN }
+				local look = { atlas = NODE_LOOK.atlas, texture = NODE_LOOK.texture, size = SIZE_KNOWN }
 				local pin = S.AddPin(set, u, v, look)
 				pin.node = id
 				-- (a dark outline: the boot again, in black, a little bigger, under it)
