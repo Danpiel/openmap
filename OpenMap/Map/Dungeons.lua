@@ -2484,6 +2484,9 @@ function mod:SetupDungeons(worldMap)
 			end
 			local inst = InstanceHere()
 			if not inst or not MapsOn() then return end
+			-- (Dungeon Journal shows its own map of the dungeon you're in, its bosses on it: OpenMap's isn't put
+			-- over it as the map opens there, #302. An entrance clicked on the world map still opens OpenMap's)
+			if JournalName(inst) then return end
 			local id = DungeonMap(inst)
 			if not id then OpenView(inst, nil) elseif map:GetMapID() ~= id then S.OpenMap(id) end
 		end)

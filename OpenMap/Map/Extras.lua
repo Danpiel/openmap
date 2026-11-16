@@ -18,7 +18,7 @@ local d = mod.defaults
 d.coords = true
 d.zoneLevels = true
 d.moveFade = 0                  -- how much the map fades while you move (0 to 0.9)
-d.mapFpsCap = 60                -- the frame rate at most while the map shows (the game's maxFPS, held then; 0: off).
+d.mapFpsCap = 0                 -- the frame rate at most while the map shows (the game's maxFPS, held then; 0: off, the game's own limit).
                                 --  60 from v0.8.9: a still map drawn uncapped heated GPUs (#233)
 d.zoomHidePins = false          -- other addons' icons (Questie's ...) hidden while the map zooms (off from v0.8.6)
 
@@ -834,6 +834,13 @@ local function ApplyExtras()
 	if not mod.db.fpsCap60 then
 		mod.db.fpsCap60 = true
 		if (mod.db.mapFpsCap or 0) == 0 then mod.db.mapFpsCap = 60 end
+	end
+	-- (and off again from v0.8.10, once for every save: the cap held the whole game at 60 while the map was
+	-- open, below the frame rate players had set the game to, #273. The game's own limit is the default now;
+	-- set again after this, it stays)
+	if not mod.db.fpsCapGame then
+		mod.db.fpsCapGame = true
+		if mod.db.mapFpsCap == 60 then mod.db.mapFpsCap = 0 end
 	end
 	-- the game's own fade off while ours runs (the player's setting kept, and put back at logout)
 	HoldCVar("mapFade", "0")
