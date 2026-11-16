@@ -143,6 +143,7 @@ local function Tile(layer, fid, cont)
 		t.mask = mask
 	end
 	t[1]:SetTexture(fid, nil, nil, "LINEAR")
+	t.omA = nil                 -- (its alpha set again: UpdateMinimap skips an unchanged one)
 	return t
 end
 
@@ -178,6 +179,7 @@ local function LODPiece(layer, cont, sub)
 	local t = tremove(lodPool) or layer:CreateTexture(nil, "ARTWORK")
 	t:SetDrawLayer("ARTWORK", sub)
 	t:SetDesaturation(MINI_DESAT)
+	t.omA = nil                 -- (see Tile)
 	local mask = CONT_MAP[cont] and S.LandMask and S.LandMask(layer, CONT_MAP[cont])
 	if t.omMask ~= mask then
 		if t.omMask then t:RemoveMaskTexture(t.omMask) end
@@ -207,7 +209,7 @@ local function ShowLOD(layer, cont, level, per, keys, tx0, tx1, ty0, ty1, alpha)
 						t:Show()
 					end
 				end
-				if t then t:SetAlpha(alpha) end
+				if t and t.omA ~= alpha then t.omA = alpha t:SetAlpha(alpha) end
 			end
 		end
 	end
@@ -264,7 +266,7 @@ local function UpdateMinimap(layer, conts, u, v, hu, hv, mix)
 									tex:Show()
 								end
 							end
-							t[1]:SetAlpha(a3)
+							if t.omA ~= a3 then t.omA = a3 t[1]:SetAlpha(a3) end
 						end
 					end
 				end
@@ -849,7 +851,14 @@ function S.SetView(u, v, hu, hv, zoom, steps)
 	local under = Try("underground", UpdateUnderground, L.under, cont, u, v, hu, hv, steps) or 0
 	-- the out-of-focus world above a cave gets heavier grain
 	Try("grain", UpdateGrain, L.grain, u, v, hu, hv, math.max(soft, math.min(1.4, under * 1.4)))
-	for i, fn in ipairs(S.viewHooks) do Try("view hook " .. i, fn, u, v, hu, hv, zoom) end
+	-- the hooks' names made once, not a new string each a frame
+	S.viewHookNames = S.viewHookNames or {}
+	local names = S.viewHookNames
+	for i, fn in ipairs(S.viewHooks) do
+		local step = names[i]
+		if not step then step = "view hook " .. i names[i] = step end
+		Try(step, fn, u, v, hu, hv, zoom)
+	end
 	local n = 0
 	for _ in pairs(tiles) do n = n + 1 end
 	cv.tiles = n

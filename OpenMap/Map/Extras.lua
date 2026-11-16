@@ -150,7 +150,8 @@ local function UpdateCoords(_, elapsed)
 		bar.cursor:GetParent():Hide()
 	end
 	-- a pill's width changes with its name only, never with the numbers (they sit in a box of their own)
-	for _, fs in ipairs({ bar.player, bar.cursor }) do
+	bar.omPills = bar.omPills or { bar.player, bar.cursor }   -- (not a new table each tick)
+	for _, fs in ipairs(bar.omPills) do
 		local w = math.floor(fs:GetStringWidth() + NUMBERS + 30.5)
 		local pill = fs:GetParent()
 		if pill.omWidth ~= w then pill.omWidth = w pill:SetWidth(w) end
@@ -316,8 +317,18 @@ local function AreaLabelOnUpdate(self)
 		local id, _, _, x, y = PlaceAt()
 		local name, fish
 		if id ~= mapID and id ~= S.WORLD then
-			name = MapName(id)
-			if name then name, fish = name .. LevelText(id), FishingText(id) end
+			-- the label made once per place (and level, fishing skill, setting), not
+			-- a map lookup and its strings every frame the cursor is over the map
+			local lvl = ns.Safe.Value(UnitLevel("player"))
+			local _, rank = FishingRank()
+			local c = self.omLabel
+			if c and c.id == id and c.lvl == lvl and c.rank == rank and c.zl == mod.db.zoneLevels then
+				name, fish = c.name, c.fish
+			else
+				name = MapName(id)
+				if name then name, fish = name .. LevelText(id), FishingText(id) end
+				self.omLabel = { id = id, lvl = lvl, rank = rank, zl = mod.db.zoneLevels, name = name, fish = fish }
+			end
 		elseif x >= 0 and x <= 1 and y >= 0 and y <= 1 then
 			name = MapUtil.FindBestAreaNameAtMouse(mapID, x, y)
 			if not name and id == mapID and mod.IsStitched() then

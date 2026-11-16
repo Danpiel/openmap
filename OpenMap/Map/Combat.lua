@@ -86,9 +86,16 @@ local function ScanPools()
 	end
 end
 
+-- each global table checked once: later sweeps only look at new ones
+local checked = setmetatable({}, { __mode = "k" })
 local function Sweep()
 	sweepSoon = false
-	for _, value in pairs(_G) do Point(value) end
+	for _, value in pairs(_G) do
+		if type(value) == "table" and not checked[value] then
+			checked[value] = true
+			Point(value)
+		end
+	end
 	PointPins()
 end
 

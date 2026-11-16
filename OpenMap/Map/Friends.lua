@@ -386,11 +386,26 @@ local function Scan()
 	dirty = true
 end
 
-local scanning = false
+-- map closed: roster events (raids, big guilds) coalesced into one scan per 30 s;
+-- opening the map scans at once if one is pending
+local scanning, scanToken = false, 0
 local function QueueScan()
 	if scanning then return end
 	scanning = true
-	C_Timer.After(1, function() scanning = false Timed("friends and guild scanned", Scan) end)
+	scanToken = scanToken + 1
+	local token = scanToken
+	local wait = (map and not map:IsShown()) and 30 or 1
+	C_Timer.After(wait, function()
+		if token ~= scanToken then return end
+		scanning = false
+		Timed("friends and guild scanned", Scan)
+	end)
+end
+local function ScanPendingNow()
+	if not scanning then return end
+	scanning = false
+	scanToken = scanToken + 1
+	QueueScan()
 end
 
 local function AskRosters()
@@ -709,6 +724,7 @@ function mod:SetupFriends(worldMap)
 		if dirty then redrawIn, stitched = REDRAW_EVERY, OnScreen() Timed("friends and guild drawn", Redraw) end
 	end)
 	worldMap:HookScript("OnShow", function()
+		ScanPendingNow()
 		wait, rosterIn, dirty = 0, 0, true
 		C_Timer.After(0.2, function() if worldMap:IsShown() then MaybeAsk(worldMap) end end)
 	end)
