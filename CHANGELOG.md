@@ -8,7 +8,8 @@
   error about GetMapInfoAtPosition. A view worked out while the map was still 0 px across (a divide
   by zero) was put into the map, and every view after it was worked out from it, so the map stayed
   blank. A view that isn't one is never put up now, the map's last view and its saved window place
-  and size are checked as they're read back, and a bad one is forgotten (#260, #261, #263).
+  and size are checked as they're read back, and a bad one is forgotten (#260, #261, #263). The cause, found
+  by OlehPetrykUA: v0.8.9 put the map together during its very first build, before it had a size.
 
 - **Fewer hitches zooming out**: the first zoom out of a session made the lettering of every continent
   and sea name (hundreds of font strings) in one frame; one name is made a frame now. And the tiles
