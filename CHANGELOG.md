@@ -30,6 +30,28 @@
 - **The zone highlight toggle works again**: with it off, zones could still glow under the cursor, where
   the game made its highlight after OpenMap set the map up (#262).
 
+- **The map in combat**: opened, zoomed or panned in a fight, the map no longer comes up stretched,
+  half empty and see-through until the fight ends. The game can refuse OpenMap's zoom then (the map
+  holds the group members' protected icon); the map is now drawn at the zoom the game kept, and the
+  one you asked for is put up as the fight ends. The window is no longer moved, sized or scaled in a
+  fight either (each was an "action blocked"): that waits for the fight's end too (#294). By Vennomfang.
+
+- **ClassicUI Forever**: its World map option lays the map window out itself every frame, so
+  OpenMap's resize corners and title bar did nothing, and in a fight parts of the map went missing.
+  OpenMap now asks once whether to turn that option off (a reload). Kept on, OpenMap's corners, title
+  bar and saved place stand down and leave the window to it.
+
+- **Stuck on a dungeon's map**: inside a dungeon, Esc closed the whole map, and it opened on the
+  dungeon again, never the world. Esc (out of combat), a right-click and Back now go to the world map
+  around the dungeon's entrance (or your last place outdoors), and another addon laying the window out
+  again no longer throws the map back to the dungeon.
+
+### Improved
+
+- **Faster loading**: the stitched map is no longer built during the loading screen. It's built a few
+  seconds after it, a few milliseconds a frame (not in combat), so the map is ready by the time you open
+  it; opened sooner, the rest is built then. By Vennomfang.
+
 ## v0.8.9 (2026-11-14)
 
 ### New

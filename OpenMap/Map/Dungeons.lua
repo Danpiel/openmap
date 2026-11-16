@@ -47,6 +47,7 @@ local byMap                     -- a dungeon's map (each floor) -> { insts = { .
 local returnTo                  -- the world as it was when a dungeon's map was opened: { u, v, zoom, maps = { [mapID] = true } }
 local away = {}                 -- maps off the stitched world a dock has opened (Zephras Isle): [mapID] = true
 local shownMap, lastMap         -- the map the window shows, and the one before it
+local hiddenAt, hiddenWith      -- when the map last closed, and the view that was up then: { inst, its entrance's u, v, the floor }
 
 local function MapsOn() return mod.db.dungeonMaps ~= false end   -- (Options' Dungeon maps)
 mod.DungeonMapsOn = MapsOn
@@ -276,6 +277,23 @@ local function CloseView()
 	Sound("IG_QUEST_LOG_CLOSE")
 	view:Hide()
 	RefreshCard()
+	-- (opened as the map opened inside the dungeon: under it is the game's map of the instance, not the
+	-- stitched world, and closing the view left you on that: up to the world around its entrance)
+	if map and map:IsShown() and not mod.IsStitched() and not PadView() and not (mod.PadWaits and mod.PadWaits()) then
+		local u, v, zoom = view.fromU, view.fromV, nil
+		if not u and mod.InstanceEntranceView then u, v, zoom = mod.InstanceEntranceView() end
+		-- (an entrance the tables don't place: where you last were outdoors, Nav.lua's)
+		local last = mod.outsideInstanceView
+		if not u and last then u, v = last[1], last[2] end
+		local chain = u and S.ChainAt(u, v)
+		local zone = chain and chain[#chain]
+		if zone then
+			S.OpenMap(zone)
+			if mod.IsStitched() then mod.ShowNow(u, v, zoom or math.max(mod.FitZoom(zone) * 2, 6)) end
+		elseif map.NavigateToParentMap then
+			map:NavigateToParentMap()
+		end
+	end
 end
 
 local function Wheel(delta)
@@ -301,7 +319,7 @@ local function BuildView()
 	view:SetClipsChildren(true)
 	-- (the gamepad's cursor presses its tabs and buttons, and A on it isn't the map's under it: Gamepad.lua)
 	mod.padRoots[#mod.padRoots + 1] = view
-	tinsert(UISpecialFrames, "OpenMapDungeonView")
+	if not PadView() then tinsert(UISpecialFrames, "OpenMapDungeonView") end   -- (the Gamepad UI reads that list)
 	local bg = view:CreateTexture(nil, "BACKGROUND")
 	bg:SetAllPoints()
 	bg:SetColorTexture(0.05, 0.04, 0.03, 0.96)
@@ -641,6 +659,40 @@ local function BuildView()
 		Dock()                                      -- (out of the quest log, if it was in it)
 		if card and card:IsShown() then C_Timer.After(0, RefreshCard) end
 	end)
+	-- Escape: back to the world, as a right-click. Escape's own list (UISpecialFrames) closes the game's
+	-- panels in the same go, the map window among them: the whole map shut, and inside a dungeon it then
+	-- opened on the dungeon again, never the world. So the key is taken here, unless another window of
+	-- Escape's is up (it closes that). Not in combat, where a key can't be kept from the game: the map
+	-- closes then, as it did
+	-- (keys are passed on except that Escape: passing them on can't be set in combat, so the keyboard is
+	-- taken only while it's known to pass them on; a view holding it without would swallow every key,
+	-- abilities too)
+	local passing = false
+	local function TakeKeys()
+		if InCombatLockdown() then
+			if not passing then view:EnableKeyboard(false) end
+			return
+		end
+		view:SetPropagateKeyboardInput(true)
+		passing = true
+		view:EnableKeyboard(true)
+	end
+	if not PadView() then
+		TakeKeys()
+		view:HookScript("OnShow", TakeKeys)
+		ns.RegisterEvent(view, "PLAYER_REGEN_ENABLED", function() if view:IsShown() then TakeKeys() end end)
+		view:SetScript("OnKeyDown", function(self, key)
+			if key ~= "ESCAPE" or InCombatLockdown() or self.leaving then return end
+			for _, name in ipairs(UISpecialFrames) do
+				local f = _G[name]
+				if f and f ~= self and type(f) == "table" and f.IsShown and f:IsShown() then return end
+			end
+			self:SetPropagateKeyboardInput(false)
+			passing = false
+			CloseView()
+			C_Timer.After(0, TakeKeys)
+		end)
+	end
 	view:Hide()
 end
 
@@ -1295,7 +1347,7 @@ local function Chooser()
 	chooser:EnableMouse(true)
 	chooser:SetClampedToScreen(true)
 	chooser.pad = { Look:Dropdown(chooser) }      -- (the game's own dropdowns' look)
-	tinsert(UISpecialFrames, "OpenMapDungeonChooser")
+	if not PadView() then tinsert(UISpecialFrames, "OpenMapDungeonChooser") end   -- (the Gamepad UI reads that list)
 	chooser.rows = {}
 	chooser:SetScript("OnShow", function(self) self:RegisterEvent("GLOBAL_MOUSE_DOWN") end)
 	chooser:SetScript("OnHide", function(self) self:UnregisterEvent("GLOBAL_MOUSE_DOWN") end)
@@ -2402,6 +2454,18 @@ function mod:SetupDungeons(worldMap)
 	-- the map opened inside a dungeon the client has no map of (WoW Forever: none of them): its own
 	-- map, as its entrance would open it, not the world with no one on it
 	map:HookScript("OnShow", function()
+		-- (shown again a moment after it was hidden: another addon laying the window out again with a
+		-- hide and a show (ClassicUI Forever's World map does), not the map opened: it stays as it was,
+		-- the dungeon's view back if it was up, the world if you'd gone back to it, never forced back in)
+		if hiddenAt and GetTime() - hiddenAt < 0.25 then
+			local was = hiddenWith
+			hiddenAt, hiddenWith = nil, nil
+			if was and MapsOn() and not (view and view:IsShown()) then
+				OpenView(was[1], was[2] and { u = was[2], v = was[3] } or nil)
+				if was[4] and was[4] ~= view.floor then ShowFloor(was[4], true) end
+			end
+			return
+		end
 		C_Timer.After(0.1, function()
 			if not map:IsShown() or (view and view:IsShown()) then return end
 			-- on a map off the stitched world (Zephras Isle): its own map, as its airship opens it, not
@@ -2425,6 +2489,7 @@ function mod:SetupDungeons(worldMap)
 		end)
 	end)
 	map:HookScript("OnHide", function()
+		hiddenAt, hiddenWith = GetTime(), view and view:IsShown() and { view.inst, view.fromU, view.fromV, view.floor } or nil
 		returnTo, shownMap, lastMap, portalCard = nil, nil, nil, nil
 		if chooser then chooser:Hide() end
 		if view then view:Hide() end

@@ -1236,7 +1236,54 @@ end
 
 -- Builds everything on `parent` (Blizzard's canvas): art frames from `artLevel`
 -- (needs `range` levels), icons at `iconLevel`.
+-- The build, all of it (S.Build), or a few ms of it a frame (S.BuildSoon: after the loading screen, so
+-- neither it nor the map's first opening carries the whole of it). S.Pace, between its steps, hands the
+-- frame back once its slice is used up; a build under way when the map opens is finished at once.
+-- (On S, not file locals: the file is at Lua's limit of 200)
+S.PACE_MS = 4
+function S.Pace()
+	local p = S.pace
+	if p and not p.rush and coroutine.running() == p.co and debugprofilestop() - p.t0 > S.PACE_MS then
+		coroutine.yield()
+	end
+end
+
+-- one slice of a build over frames; false once it's done (or failed: the error is shown)
+function S.PaceStep()
+	local p = S.pace
+	if not p then return false end
+	p.t0 = debugprofilestop()
+	local ok, err = coroutine.resume(p.co)
+	p.ms = p.ms + debugprofilestop() - p.t0
+	if ok and coroutine.status(p.co) ~= "dead" then return true end
+	S.pace, S.paceMs = nil, p.ms
+	if not ok then geterrorhandler()(err) elseif p.done then p.done() end
+	return false
+end
+
+function S.BuildSoon(parent, artLevel, range, iconLevel, done)
+	if root or S.pace then return end
+	S.pace = { ms = 0, done = done, co = coroutine.create(function() S.BuildNow(parent, artLevel, range, iconLevel) end) }
+	if not S.paceFrame then
+		S.paceFrame = CreateFrame("Frame")
+		S.paceFrame:SetScript("OnUpdate", function(self)
+			if InCombatLockdown() then return end    -- (none of it in a fight: a frame then is worth more)
+			if not S.PaceStep() then self:Hide() end
+		end)
+	end
+	S.paceFrame:Show()
+end
+
 function S.Build(parent, artLevel, range, iconLevel)
+	if S.pace then                          -- (under way over frames: the rest now)
+		S.pace.rush = true
+		while S.PaceStep() do end
+		return S.built
+	end
+	return S.BuildNow(parent, artLevel, range, iconLevel)
+end
+
+function S.BuildNow(parent, artLevel, range, iconLevel)
 	if root then return end
 	S.artTop = artLevel + range             -- (the top of the art: Extras.lua lifts Questie's icons above it)
 	S.iconLevel = iconLevel                 -- (OpenMap's icons: Questie's quest icons go over them, Extras.lua)
@@ -1335,6 +1382,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 		seaPaper[i] = tex
 	end
 	local nb, ns_ = #backdrop, #backdropSea
+	S.Pace()
 	-- (to its own torn edge where a client has its outline, MapBackLand: territory.py)
 	local worldMask = PlaceBackdrop(root, WORLD, "BACKGROUND", not (ns.MapBackLands and ns.MapBackLands[WORLD]) and FEATHER_WIDE or nil)
 	if S.chartMasks and worldMask then S.chartMasks[#S.chartMasks + 1] = worldMask end
@@ -1342,6 +1390,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 	-- carries it on, as part of the world's sea (not under the sea chart: its sea does)
 	local outFrom = #backdropSea
 	for _, info in ipairs(C_Map.GetMapChildrenInfo(WORLD, Enum.UIMapType.Continent, true) or {}) do
+		S.Pace()
 		local p, files = Place(info.mapID), ArtFiles(info.mapID)
 		if p and files and #files > 0 and S.Stitched(info.mapID) and seaOn then
 			PlaceTiles(root, p, files, 0, 0, p.layer.layerWidth, p.layer.layerHeight, "BACKGROUND", 0, false,
@@ -1353,6 +1402,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 	for i = nb + 1, #backdrop do worldArt[backdrop[i]] = true end
 	for i = ns_ + 1, #backdropSea do worldArt[backdropSea[i]] = true end
 	for _, info in ipairs(C_Map.GetMapChildrenInfo(WORLD, Enum.UIMapType.Continent, true) or {}) do
+		S.Pace()
 		if S.Stitched(info.mapID) then
 			PlaceBackdrop(contRoot, info.mapID, "ARTWORK", FEATHER_WIDE)
 			if seaOn then PlaceLand(info.mapID) end   -- (its land kept as land over OpenMap's sea)
@@ -1414,6 +1464,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 	end
 
 	-- zones, biggest first so small zones land on top; cities go above everything
+	S.Pace()
 	local zones = C_Map.GetMapChildrenInfo(WORLD, Enum.UIMapType.Zone, true) or {}
 	local area = {}
 	for _, info in ipairs(zones) do
@@ -1423,6 +1474,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 	table.sort(zones, function(a, b) return area[a.mapID] > area[b.mapID] end)
 	local level = artLevel + 2
 	for _, info in ipairs(zones) do
+		S.Pace()
 		-- (a zone, or a city: as its client's list has it, else a zone without explored-area pieces is a city)
 		local stitched, kind = S.Stitched(info.mapID)
 		if area[info.mapID] > 0 and stitched then
@@ -1461,6 +1513,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 	-- unexplored map of Gilneas): its own tiles, at their own resolution, through MapCoastArt
 	-- (its land and shallows, where no zone paints), under every zone, over the gaps' paper
 	for _, x in ipairs(ns.MapGaps and ns.MapGaps.art or {}) do
+		S.Pace()
 		local name, _, r, list = unpack(x)
 		local files = {}                -- (0: a tile its mask leaves nothing of; not drawn)
 		for i, f in ipairs(list) do files[i] = f ~= 0 and f or nil end
@@ -1481,6 +1534,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 	S.fillRoot:SetAllPoints(root)
 	S.fillRoot:SetFrameLevel(tilesRoot:GetFrameLevel())
 	for _, x in ipairs(ns.MapGapFills or {}) do
+		S.Pace()
 		local num, r, fw, fh, cols, list = unpack(x)
 		local sx, sy = (r[3] - r[1]) * W / fw, (r[4] - r[2]) * H / fh
 		local f = CreateFrame("Frame", nil, S.fillRoot)
@@ -1523,14 +1577,18 @@ function S.Build(parent, artLevel, range, iconLevel)
 		end
 	end
 
+	S.Pace()
 	cities.Build()
 	Baked.Build()
+	S.Pace()
 	BuildPins()
+	S.built = true
 	return true
 end
 
-function S.IsBuilt() return root ~= nil end
-function S.Root() return root end   -- (Extras.lua's keep-warm: the files shown on it)
+-- (built all through: a build over frames has its root long before it's done)
+function S.IsBuilt() return S.built == true end
+function S.Root() return S.built and root or nil end   -- (Extras.lua's keep-warm: the files shown on it)
 
 -- how much an underground city's own map covers the point (u, v) (0..1): Close.lua keeps
 -- the minimap off it, as the minimap there shows the surface (the ruins above the Undercity,

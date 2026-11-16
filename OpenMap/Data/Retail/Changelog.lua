@@ -4,12 +4,15 @@
 local _, ns = ...
 
 ns.MapChangelog = {
-	{ version = "Unreleased", date = "", heads = { [1] = "Fixed", }, items = {
+	{ version = "Unreleased", date = "", heads = { [1] = "Fixed", [8] = "Improved", }, items = {
 		"|cff6e2c0aThe map loads again for everyone|r: for some players since v0.8.9 the map opened blank, with an error about GetMapInfoAtPosition. A view worked out while the map was still 0 px across (a divide by zero) was put into the map, and every view after it was worked out from it, so the map stayed blank. A view that isn't one is never put up now, the map's last view and its saved window place and size are checked as they're read back, and a bad one is forgotten (#260, #261, #263). The cause, found by OlehPetrykUA: v0.8.9 put the map together during its very first build, before it had a size.",
 		"|cff6e2c0aFewer hitches zooming out|r: the first zoom out of a session made the lettering of every continent and sea name (hundreds of font strings) in one frame; one name is made a frame now. And the tiles fading in as you zoom out set their opacity in 8 steps instead of on every frame, a third to a half fewer calls to the client for a zoom out. By k4m1.",
 		"|cff6e2c0aYour arrow in the right place again|r: v0.8.9's \"one arrow, not two\" hid Blizzard's own arrow on retail too, where OpenMap's could be the one out of place (further north than the minimap); Blizzard's stays on retail now (#254).",
 		"|cff6e2c0aA quest from the quest log shows its map with \"Center on player, keep zoom\"|r: in your own zone the map opened at the kept zoom on you, the quest off screen; it shows the quest's map whole now, as with the other choices (#255).",
 		"|cff6e2c0aThe zone highlight toggle works again|r: with it off, zones could still glow under the cursor, where the game made its highlight after OpenMap set the map up (#262).",
+		"|cff6e2c0aThe map in combat|r: opened, zoomed or panned in a fight, the map no longer comes up stretched and half empty until the fight ends: it's drawn at the zoom the game kept, and the one you asked for is put up as the fight ends. The window is no longer moved, sized or scaled in a fight (#294). By Vennomfang.",
+		"|cff6e2c0aEsc on a dungeon's map|r goes back to the world map (out of combat) instead of closing the map.",
+		"|cff6e2c0aFaster loading|r: the stitched map is built a few seconds after the loading screen, a few milliseconds a frame, not during it. By Vennomfang.",
 	} },
 	{ version = "v0.8.9", date = "2026-11-14", heads = { [1] = "New", [3] = "Improved", [4] = "Fixed", }, items = {
 		"|cff6e2c0aHide world markers in instances|r (the menu's On the map tab, and Options; off unless turned on): in dungeons, raids and battlegrounds, OpenMap's friends, guild, transport and all-zone quest markers step aside. With Dungeon maps off and another addon's dungeon map shown over the world (NeedRoll's), the world under it stops answering the mouse, and a right-click brings the world map back, at the dungeon's outdoor entrance (#232). By HonzoNebro.",
