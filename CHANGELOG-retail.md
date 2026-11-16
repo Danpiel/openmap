@@ -38,6 +38,17 @@
 - **Faster loading**: the stitched map is built a few seconds after the loading screen, a few
   milliseconds a frame, not during it. By Vennomfang.
 
+- **Less work while the map is closed**: the guild and friends lists are read at most every 30 seconds
+  (a raid's roster changes came each time), exploring somewhere recolours the map's art the next time
+  it opens rather than then, and another addon loading no longer looks through every global table
+  again.
+
+- **Smoother panning and zooming**: darkened unexplored land lets go of zones out of view (they were
+  laid out on every frame, more the more of the world you'd seen), and of a zone's old shading when
+  it's made again; the boat and zeppelin routes' finer dots are hidden, not only faded, from afar; the
+  continents' names rest their outer glow while the map moves; and the close-up minimap, the cursor's
+  place name and the coordinates skip work when nothing has changed. By cscoder69.
+
 ## v0.8.9 (2026-11-14)
 
 ### New

@@ -1436,9 +1436,25 @@ local function Setup()
 
 	Timed("Extras", mod.SetupExtras, mod, map)
 	Timed("Flights", mod.SetupFlights, mod)
-	ns.RegisterEvent(mod, "MAP_EXPLORATION_UPDATED", function() if S.IsBuilt() then S.RefreshExplored() end end)
+	-- map closed: the world-wide re-grade waits for the next opening
+	local exploredDirty, citiesDirty = false, false
+	ns.RegisterEvent(mod, "MAP_EXPLORATION_UPDATED", function()
+		if not S.IsBuilt() then return end
+		if map:IsShown() then S.RefreshExplored() else exploredDirty = true end
+	end)
 	-- (into a city: found, though nothing was explored there just now)
-	ns.RegisterEvent(mod, "ZONE_CHANGED_NEW_AREA", function() if S.IsBuilt() then S.RefreshCities() end end)
+	ns.RegisterEvent(mod, "ZONE_CHANGED_NEW_AREA", function()
+		if not S.IsBuilt() then return end
+		if map:IsShown() then S.RefreshCities() else citiesDirty = true end
+	end)
+	map:HookScript("OnShow", function()
+		if not (exploredDirty or citiesDirty) then return end
+		C_Timer.After(0, function()
+			if not S.IsBuilt() then return end
+			if exploredDirty then exploredDirty = false citiesDirty = false S.RefreshExplored()
+			elseif citiesDirty then citiesDirty = false S.RefreshCities() end
+		end)
+	end)
 	Timed("Nav", mod.SetupNav, mod, map)          -- (before the menu: it holds Nav's search box)
 	Timed("Pins", mod.SetupPins, mod, map)
 	Timed("Friends", mod.SetupFriends, mod, map)

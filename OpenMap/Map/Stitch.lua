@@ -159,10 +159,16 @@ end
 -- the first of their files to arrive, showed for a moment between the two
 -- desat: the tiles' own desaturation, the rest of the way from what they're baked at to the setting
 -- (desaturating twice is desaturating once by 1 - (1 - a)(1 - b)), so they serve any Take colour out
--- english: the tiles are baked from the English client's files, names lettered on the art and all; any
--- other language draws the zones live, from the client's own art in its language
+-- english: the tiles are baked from the English client's files, names lettered on the art and all
+-- lettered: tiles in the client's own language: English's, or another language's own set where one is
+-- baked (MapZones\<locale>\, from that client's art: ns.MapZoneArt.locales); any other language draws
+-- the zones live, from the client's own art in its language
 local Baked = { FADE = { 1.2, 1.6 }, WARM = 0.85, tiles = {}, use = false, live = 1, warm = false, busy = false, holding = false,
 	path = TEX .. "MapZones\\", desat = 0, english = not GetLocale or GetLocale():sub(1, 2) == "en" }
+Baked.lettered = Baked.english
+if not Baked.english and ns.MapZoneArt and ns.MapZoneArt.locales and ns.MapZoneArt.locales[GetLocale()] then
+	Baked.path, Baked.lettered = TEX .. "MapZones\\" .. GetLocale() .. "\\", true
+end
 
 -- The live zone layers' regions (tilesRoot, overlayRoot, coreRoot: thousands of textures and their
 -- masks) are anchored only while they can show. Every region is placed on root, and each frame of a
@@ -361,6 +367,9 @@ local function Record(region, x, y, w, h)
 	placed[#placed + 1] = rec
 	region.omRec = rec
 	PlaceRecord(rec)
+	-- the unexplored shades' records, gathered per layer (Shade.Anchor)
+	local c = S.recCollect
+	if c then c[#c + 1] = rec end
 end
 
 -- A map's art rectangle in world units: left, top, x scale, y scale
@@ -1427,11 +1436,14 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 	-- nine. Back once the map has stopped. The continents' keep theirs (few letters, and their glow
 	-- flickering off and on as you zoom showed). (On `names`, not locals of their own: the file is near
 	-- Lua's limit of 200)
+	-- the continents' names rest their outer, faint ring too (half their halo's font
+	-- strings, redrawn each frame of a zoom); the inner ring stays, so their glow doesn't flicker off
 	names.Hush = function(on)
 		names.hushed = on
 		for _, n in ipairs(names) do
-			if n[2].fade ~= "land" then
-				for _, copy in ipairs(n[1].halos or NONE) do copy:SetShown(not on) end
+			local land = n[2].fade == "land"
+			for _, copy in ipairs(n[1].halos or NONE) do
+				if not land or copy.omOuter then copy:SetShown(not on) end
 			end
 		end
 		names.watch:SetShown(on)
@@ -1870,7 +1882,8 @@ local function Letter(f, label)
 						copy:SetPoint("LEFT", f, "TOPLEFT", x + dx, y + dy)
 						f.halos = f.halos or {}
 						f.halos[#f.halos + 1] = copy
-						if names.hushed and label.fade ~= "land" then copy:Hide() end
+						copy.omOuter = ring ~= HALO[1] or nil   -- (names.Hush)
+						if names.hushed and (label.fade ~= "land" or copy.omOuter) then copy:Hide() end
 					end
 				end
 			end
@@ -2350,6 +2363,20 @@ local Shade = { zones = {}, on = false, REACH = 64, DIM = { 0.38, 0.39, 0.43, 0.
 -- how dark (Options' Darkening, 0..1 of the full shade): the shade's alpha and DIM toward none, alike, and
 -- every shade texture made (tinted), coloured again when it changes. DIMK: DIM at that strength
 Shade.k, Shade.tinted, Shade.DIMK = 1, {}, { 0.38, 0.39, 0.43, 0.8 }
+-- the shade layers anchored only while they show, as the live layers are (Live):
+-- each frame of a pan or zoom lays out everything anchored to root, hidden or not
+function Shade.Collect()
+	local recs, prev = { on = true }, S.recCollect
+	S.recCollect = recs
+	return recs, prev
+end
+function Shade.Anchor(recs, on)
+	if not recs or recs.on == on then return end
+	recs.on = on
+	for _, rec in ipairs(recs) do
+		if on then PlaceRecord(rec) else rec[1]:ClearAllPoints() end
+	end
+end
 function Shade.Tint(tex)
 	Shade.tinted[#Shade.tinted + 1] = tex
 	tex:SetColorTexture(UNDISCOVERED[1], UNDISCOVERED[2], UNDISCOVERED[3], UNDISCOVERED[4] * Shade.k)
@@ -2396,6 +2423,7 @@ function Shade.Zone(mapID)
 	if p and shadeRoot then
 		local frame = CreateFrame("Frame", nil, shadeRoot)
 		frame:SetAllPoints(root)
+		local recs, prev = Shade.Collect()
 		local land = ZoneMask(frame, p, ZONELAND)
 		if land then
 			z = { frame = frame, land = land, p = p }
@@ -2414,9 +2442,11 @@ function Shade.Zone(mapID)
 			Record(z.rim, x, y, w, h)
 			z.rim:AddMaskTexture(share)
 			z.grey = Shade.Grey(mapID, p, share, x, y, w, h)
+			z.recs = recs
 		else
 			frame:Hide()
 		end
+		S.recCollect = prev
 	end
 	Shade.zones[mapID] = z
 	return z
@@ -2427,13 +2457,19 @@ end
 -- and its share of the land round it, a greyed copy of the continent's art (Shade.DIMK's desaturation),
 -- in the continent's layer (fading with it), its tiles near the zone only
 -- Shade.Grey's copies muted as the art they copy is (S.SetZoom): the world's giving way to the continents'
-function S.GreyMute()
+-- only the copies shown (zones near the view); the rest are muted as they show (list)
+function S.GreyMute(list)
 	local m, wo = math.max(muted, 0), math.max(worldOut, 0)
 	local c = 1 - 0.45 * m
-	for tex in pairs(S.greyTex or NONE) do
-		tex:SetDesaturation(math.max(S.greyD or Shade.DIMK[4], 0.8 * m))
+	local d = math.max(S.greyD or Shade.DIMK[4], 0.8 * m)
+	local function Mute(tex)
+		tex:SetDesaturation(d)
 		tex:SetVertexColor(c, c * 0.97, c * 0.92)
 		tex:SetAlpha((1 - BACK_MUTE * m) * (tex.omWorld and (1 - wo) or 1))
+	end
+	if list then for _, tex in ipairs(list) do Mute(tex) end return end
+	for tex in pairs(S.greyTex or NONE) do
+		if tex:IsShown() then Mute(tex) end
 	end
 end
 
@@ -2447,6 +2483,7 @@ function Shade.Grey(mapID, p, share, x, y, w, h)
 		S.greyRoot:SetShown(detailNow < 0.98)
 	end
 	local g = S.greyRoot
+	local recs, prev = Shade.Collect()
 	local land = ZoneMask(g, p, ZONELAND)
 	local rim = g:CreateMaskTexture()
 	rim:SetTexture(TEX .. "MapZoneBorder\\" .. mapID, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
@@ -2491,7 +2528,9 @@ function Shade.Grey(mapID, p, share, x, y, w, h)
 			end
 		end
 	end
-	S.GreyMute()
+	S.recCollect = prev
+	out.recs = recs
+	Shade.Anchor(recs, false)          -- (made hidden: anchored as they show, Shade.Show)
 	return out
 end
 
@@ -2509,6 +2548,8 @@ function Shade.Pieces(mapID, z)
 	local f = CreateFrame("Frame", nil, Shade.root)
 	f:SetAllPoints(root)
 	z.dim = f
+	local recs, prev = Shade.Collect()
+	z.dimRecs = recs
 	local edge = ZoneMask(f, p, EDGE) or Feather(f, p, FEATHER_THIN)
 	local band, hole = ZoneMask(f, p, BAND), BannerHole(f, p)
 	z.dimLand = ZoneMask(f, p, ZONELAND)          -- (a darkened piece: its land only, the sea it paints left alone)
@@ -2540,6 +2581,7 @@ function Shade.Pieces(mapID, z)
 		end
 		z.pieces[piece] = list
 	end)
+	S.recCollect = prev
 end
 
 -- the copies coloured for whether their piece is explored, at the colour settings now: the explored
@@ -2550,9 +2592,8 @@ function Shade.Colour(mapID, z)
 	-- (only when the settings or the pieces explored have changed: this runs with each cull)
 	local un = 0
 	for piece in pairs(z.pieces) do if piece.unexplored then un = un + 1 end end
-	local done = strength .. ":" .. desat .. ":" .. un .. ":" .. Shade.k
-	if z.coloured == done then return end
-	z.coloured = done
+	if z.coloured and z.cS == strength and z.cD == desat and z.cU == un and z.cK == Shade.k then return end
+	z.coloured, z.cS, z.cD, z.cU, z.cK = true, strength, desat, un, Shade.k
 	local m = ns.MapGrade and ns.MapGrade[mapID]
 	local D = Shade.DIMK
 	for piece, list in pairs(z.pieces) do
@@ -2603,10 +2644,12 @@ function Shade.Show(mapID)
 	if not state then
 		if z then
 			z.frame:Hide()
-			if z.dim then z.dim:Hide() end
+			Shade.Anchor(z.recs, false)
+			if z.dim then z.dim:Hide() Shade.Anchor(z.dimRecs, false) end
 			if z.grey and z.greyShown then
 				z.greyShown = false
 				for _, tex in ipairs(z.grey) do tex:Hide() end
+				Shade.Anchor(z.grey.recs, false)
 			end
 		end
 		return
@@ -2615,16 +2658,21 @@ function Shade.Show(mapID)
 	if not z then return end
 	local here = Shade.Near(mapID)
 	z.near = here
-	z.frame:SetShown(here and state == "all")
-	local grey = here and state == "all"
+	local whole = here and state == "all"
+	Shade.Anchor(z.recs, whole)
+	z.frame:SetShown(whole)
+	local grey = whole
 	if z.grey and z.greyShown ~= grey then
 		z.greyShown = grey
+		if grey then Shade.Anchor(z.grey.recs, true) S.GreyMute(z.grey) end
 		for _, tex in ipairs(z.grey) do tex:SetShown(grey) end
+		if not grey then Shade.Anchor(z.grey.recs, false) end
 	end
 	local some = here and state == "some"
 	if some and not z.pieces then Shade.Pieces(mapID, z) end
 	if z.dim then
 		local copies = some and not Shade.Hide.minimap      -- (the minimap drawn: Shade.Hide darkens over it)
+		Shade.Anchor(z.dimRecs, copies)
 		z.dim:SetShown(copies)
 		if copies then Shade.Colour(mapID, z) end
 	end
@@ -2731,6 +2779,13 @@ function Shade.Hide.Build(mapID, rects, un, grade)
 	if not files or #files == 0 then return false end
 	local f = CreateFrame("Frame", nil, Shade.Hide.root)
 	f:SetAllPoints(root)
+	local recs, prev = Shade.Collect()
+	local made = Shade.Hide.BuildIn(f, p, files, mapID, rects, un, grade)
+	S.recCollect = prev
+	made.recs = recs
+	return made
+end
+function Shade.Hide.BuildIn(f, p, files, mapID, rects, un, grade)
 	if Shade.Hide.mode == "dim" then
 		-- (the shade on the zone's land alone, as a zone not found at all is shaded: the sea it paints left
 		-- be; through each unexplored piece's art, its alpha the shade's shape: Shade.Hide.Tiles)
@@ -2796,19 +2851,28 @@ function Shade.Hide.Show(mapID)
 			Shade.Hide.root:SetFrameLevel(S.artTop - 6)
 		end
 		local rects, un = Shade.Hide.Rects(mapID)
-		local grade = mode .. ":" .. gradeNow[1] .. ":" .. gradeNow[2]
-		if z and (z.un ~= un or z.grade ~= grade) then
+		local g1, g2 = gradeNow[1], gradeNow[2]
+		if z and (z.un ~= un or z.gm ~= mode or z.g1 ~= g1 or z.g2 ~= g2) then
+			-- the old one let go: unanchored and its files dropped (it was left anchored)
 			if z.frame then z.frame:Hide() end
+			Shade.Anchor(z.recs, false)
+			for _, rec in ipairs(z.recs or NONE) do
+				local r = rec[1]
+				if r.SetTexture then pcall(r.SetTexture, r, nil) end
+			end
 			z = nil
 		end
 		if not z then
-			z = (mode == "dim" and un > 0 or rects and #rects > 0) and Shade.Hide.Build(mapID, rects, un, grade)
-				or { un = un, grade = grade }
+			z = (mode == "dim" and un > 0 or rects and #rects > 0) and Shade.Hide.Build(mapID, rects, un, mode)
+				or {}
+			z.un, z.gm, z.g1, z.g2 = un, mode, g1, g2
 			Shade.Hide.zones[mapID] = z
 		end
+		Shade.Anchor(z.recs, true)
 		if z.frame then z.frame:Show() end
 	elseif z and z.frame then
 		z.frame:Hide()
+		Shade.Anchor(z.recs, false)
 	end
 end
 
@@ -2941,10 +3005,10 @@ function S.ApplyGrade(strength, desat, unexplored)
 		cities.Banners()
 	end
 	-- the baked art only at the settings it was baked at (unexplored areas hidden: live, piece by piece),
-	-- and on an English client (Baked.english)
+	-- and with tiles in the client's language (Baked.lettered)
 	local art = ns.MapZoneArt
 	Baked.use = (art and Baked.frame and strength == art.colorMatch and desat >= art.desaturate - 0.001
-		and unexplored ~= "hide" and not Baked.noFills and Baked.english) and true or false
+		and unexplored ~= "hide" and not Baked.noFills and Baked.lettered) and true or false
 	local bd = art and math.max(0, (desat - art.desaturate) / (1 - art.desaturate)) or 0
 	if Baked.use and math.abs(bd - Baked.desat) > 0.001 then
 		Baked.desat = bd
