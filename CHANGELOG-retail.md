@@ -1,6 +1,6 @@
 # OpenMap changelog
 
-## Unreleased
+## v0.8.10 (2026-11-16)
 
 ### Fixed
 
@@ -33,7 +33,19 @@
 
 - **Esc on a dungeon's map** goes back to the world map (out of combat) instead of closing the map.
 
+- **Your settings kept**: for some players every setting went back to its default at each login since
+  v0.8.9. A broken number from the blank map (#261) was saved with them, which the game can't read back,
+  so the whole file was lost; such a number is never saved now (#306).
+
+- **"Share where you are" off means off**: your place could still go out once, queued just before you
+  turned it off or in answer to a friend's hello at that moment. Nothing is sent now while it's off;
+  friends and guild see only your zone, as the game's own lists show it (#277).
+
 ### Improved
+
+- **The game's own frame rate limit while the map is open**: v0.8.9's 60 fps cap held the whole game at
+  60 while the map was open, below what many had set. It's off by default again (set once back to off
+  for everyone who had 60); the Map frame rate cap is still there to turn on (#273).
 
 - **Faster loading**: the stitched map is built a few seconds after the loading screen, a few
   milliseconds a frame, not during it. By Vennomfang.

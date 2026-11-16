@@ -1,6 +1,6 @@
 # OpenMap changelog
 
-## Unreleased
+## v0.8.10 (2026-11-16)
 
 ### Fixed
 
@@ -46,7 +46,29 @@
   around the dungeon's entrance (or your last place outdoors), and another addon laying the window out
   again no longer throws the map back to the dungeon.
 
+- **Your settings kept**: for some players every setting went back to its default at each login since
+  v0.8.9. A broken number from the blank map (#261) was saved with them, which the game can't read back,
+  so the whole file was lost; such a number is never saved now (#306).
+
+- **"Share where you are" off means off**: your place could still go out once, queued just before you
+  turned it off or in answer to a friend's hello at that moment. Nothing is sent now while it's off;
+  friends and guild see only your zone, as the game's own lists show it (#277).
+
+- **Learned flight paths are this character's**: a new character was shown flight masters another
+  character had learned, and a learned one could show as not learned. Once you've opened a flight
+  master's map on a character, what it lists is what counts (#274, #301).
+
+- **Mount Hyjal's two flight masters** (Summit of Eternity, Tainted Foothills) are on the map (#288). And
+  the wind riders shown at Eastern Plaguelands' towers, where there are none, are gone (#307, #309).
+
+- **Dungeon Journal's dungeon map left alone**: with Dungeon Journal installed, opening the map inside
+  a dungeon it has a page for no longer puts OpenMap's dungeon map over Dungeon Journal's (#302).
+
 ### Improved
+
+- **The game's own frame rate limit while the map is open**: v0.8.9's 60 fps cap held the whole game at
+  60 while the map was open, below what many had set. It's off by default again (set once back to off
+  for everyone who had 60); the Map frame rate cap is still there to turn on (#273).
 
 - **Faster loading**: the stitched map is no longer built during the loading screen. It's built a few
   seconds after it, a few milliseconds a frame (not in combat), so the map is ready by the time you open
