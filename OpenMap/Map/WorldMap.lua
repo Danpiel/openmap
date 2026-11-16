@@ -1578,7 +1578,9 @@ function mod:RefreshInstancePins(onlyPins)
 	if not inside and self.RememberOutsideInstance then self.RememberOutsideInstance() end
 	S.SetWorldPinsHidden(self.instancePinsHidden and not self.instanceWorldBrowsing)
 	if not onlyPins and map and sc and S.IsBuilt()
-		and self.instanceWorldHidden ~= self.InstanceWorldHidden(map:GetMapID()) then
+		-- (nil before the first Attach counts as false: nil ~= false attached the map during its first build, while
+		-- the canvas was still 0 x 0, and every view after that was NaN: #261, found by OlehPetrykUA)
+		and (self.instanceWorldHidden or false) ~= self.InstanceWorldHidden(map:GetMapID()) then
 		Attach(map:GetMapID(), true)
 	end
 end
