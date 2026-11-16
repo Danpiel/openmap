@@ -41,7 +41,19 @@
   turned it off or in answer to a friend's hello at that moment. Nothing is sent now while it's off;
   friends and guild see only your zone, as the game's own lists show it (#277).
 
+- **Learned flight masters in green**: they were your faction's icon, red for the Horde, which read as
+  not learned. They're the game's flight map green now, greyed where not learned.
+
 ### Improved
+
+- **Dungeon maps inside dungeons can be turned off** (Options and the menu's Dungeons): off, the map
+  opened inside a dungeon is the game's own there; a dungeon's map still opens from its entrance. Beside
+  the quest log a dungeon's map opens on its Quests tab now, so it no longer covers the quest log (the tab
+  you last picked is kept).
+
+- **Sharp map by default**: Soften and paper grain is off for everyone (turn it back on in Look > Up close).
+  It softened the map a moment after it stopped moving, sharp while zooming or panning, which read as the
+  map going blurry (#286, #118). Its tooltip now says so.
 
 - **The game's own frame rate limit while the map is open**: v0.8.9's 60 fps cap held the whole game at
   60 while the map was open, below what many had set. It's off by default again (set once back to off
