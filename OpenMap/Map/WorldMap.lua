@@ -172,15 +172,40 @@ local function Clocked(name, t0)
 	if t0 and S.bench then S.bench[name] = (S.bench[name] or 0) + debugprofilestop() - t0 end
 end
 
+-- In combat the canvas holds a protected pin (the group members'), so a scale or scroll set on it from
+-- OpenMap's code can be refused. The view is then laid out at what the canvas kept: the art, every
+-- addon's icons and the zoom levels picked from it all agree (with the scale it was told and not the
+-- one it has, the art was laid out for one and drawn at the other: stretched, half missing). The view
+-- asked for waits, and is put up as combat ends (mod.FlushWaitingView)
+local waitingView                 -- { mapID, scale, x, y }: a view the canvas refused in combat
+local viewOwner = {}              -- (its event handler's key)
+local function Kept(want, have) return have and math.abs(have - want) > math.max(1e-3, math.abs(want) * 1e-3) end
 local function SetView(scale, x, y)
+	local wantScale, wantX, wantY = scale, x, y
 	sc.currentScale, sc.targetScale, sc.zoomTarget = scale, scale, scale
 	sc.Child:SetScale(scale)
+	local fight, refused = InCombatLockdown(), false
+	if fight and Kept(scale, sc.Child:GetScale()) then
+		scale = sc.Child:GetScale()
+		sc.currentScale, sc.targetScale, sc.zoomTarget = scale, scale, scale
+		refused = true
+	end
 	sc:CalculateScrollExtents()
 	x = Clamp(x, sc.scrollXExtentsMin, sc.scrollXExtentsMax)
 	y = Clamp(y, sc.scrollYExtentsMin, sc.scrollYExtentsMax)
 	sc.targetScrollX, sc.targetScrollY, sc.currentScrollX, sc.currentScrollY = x, y, x, y
 	sc:SetNormalizedHorizontalScroll(x)
 	sc:SetNormalizedVerticalScroll(y)
+	if fight then
+		-- (the scroll refused too: the view follows where the canvas is)
+		local hx, hy = sc:GetNormalizedHorizontalScroll(), sc:GetNormalizedVerticalScroll()
+		if Kept(x, hx) or Kept(y, hy) then
+			x, y = hx, hy
+			sc.targetScrollX, sc.targetScrollY, sc.currentScrollX, sc.currentScrollY = x, y, x, y
+			refused = true
+		end
+	end
+	waitingView = refused and { mapID = map:GetMapID(), scale = wantScale, x = wantX, y = wantY } or nil
 	local start = openStart and debugprofilestop and debugprofilestop()
 	local g, t0 = Before(), Clock()
 	map:OnCanvasScaleChanged()
@@ -429,7 +454,17 @@ local function Animate(_, elapsed)
 		a.down = down
 		local pu, pv = PerPx(zoom)
 		ShowWorld(a.u - a.sx * pu, a.v - a.sy * pv, zoom)
-		if done then anim = nil end
+		if done then
+			anim = nil
+		elseif waitingView then
+			-- (refused in combat: the zoom would never arrive, every addon's icons rescaled each frame
+			-- till it's over. It ends here, and where it was going is what waits)
+			anim = nil
+			local mapID = map:GetMapID()
+			pu, pv = PerPx(a.target)
+			local x, y = FromWorld(mapID, a.u - a.sx * pu, a.v - a.sy * pv)
+			waitingView = { mapID = mapID, scale = ScaleFor(mapID, a.target), x = x, y = y }
+		end
 	else
 		a.t = math.min(1, a.t + elapsed / GLIDE_TIME)
 		local e = a.t * a.t * (3 - 2 * a.t)
@@ -830,19 +865,64 @@ local function Attach(mapID, refreshed)
 end
 
 -- zoom levels from the whole world to street level, in this map's scale
-local function OnCreateZoomLevels(self)
+-- what's built on the stitched art once it is, one a step (a frame each, built ahead: Prebuild), then a refresh
+local EXTRAS = { "BuildFlights", "BuildPaint", "BuildSketch", "BuildNav", "BuildMapPins" }
+local extrasDone = 0
+local function ExtrasBuilt() return extrasDone > #EXTRAS end
+local function BuildExtra()             -- (the next; true once they're all done)
+	if ExtrasBuilt() then return true end
+	extrasDone = extrasDone + 1
+	local name = EXTRAS[extrasDone]
+	if name then
+		if mod[name] then mod[name](mod) end
+		return false
+	end
+	mod:Refresh()
+	return true
+end
+local function BuildArgs()
+	local fl = map:GetPinFrameLevelsManager()
+	return map:GetCanvas(), fl:GetValidFrameLevel("PIN_FRAME_LEVEL_OPENMAP_STITCH"), ART_RANGE,
+		fl:GetValidFrameLevel("PIN_FRAME_LEVEL_OPENMAP_ICONS")
+end
+
+-- The map built ahead, a few ms a frame, a moment after the loading screen (out of combat, the map
+-- closed): neither the loading screen nor the map's first opening carries it all (thousands of regions,
+-- hundreds of files). The map opened before it's done: the rest at once (OnCreateZoomLevels)
+local prebuildOwner = {}
+local function Prebuild()
+	if S.IsBuilt() and ExtrasBuilt() then return end
+	if InCombatLockdown() or map:IsShown() then C_Timer.After(2, Prebuild) return end   -- (open: its own build)
 	if not S.IsBuilt() then
+		if not S.pace then
+			local parent, artLevel, range, iconLevel = BuildArgs()   -- (all four: a call not last gives one)
+			S.BuildSoon(parent, artLevel, range, iconLevel, function()
+				ns.loadMs.build, ns.loadMs.builtShown = S.paceMs, false
+				C_Timer.After(0, Prebuild)
+			end)
+		end
+		return
+	end
+	if not BuildExtra() then C_Timer.After(0, Prebuild) end
+end
+local function PrebuildSoon()
+	ns.UnregisterEvent(prebuildOwner, "LOADING_SCREEN_DISABLED")
+	ns.UnregisterEvent(prebuildOwner, "PLAYER_ENTERING_WORLD")
+	C_Timer.After(3, Prebuild)
+end
+
+local function OnCreateZoomLevels(self)
+	if not (S.IsBuilt() and ExtrasBuilt()) then
+		-- (not while the map is closed: the game sizes the full-screen map as the screen and the UI scale are
+		-- set, at login, FillScreen lays it out again, and other addons lay the closed window out too; the
+		-- whole map was built then, in the loading screen. It's built ahead (Prebuild), or as it first
+		-- opens: `shown`, below)
+		if not map:IsShown() then return end
 		local t0 = debugprofilestop and debugprofilestop()
-		local fl = map:GetPinFrameLevelsManager()
-		S.Build(map:GetCanvas(), fl:GetValidFrameLevel("PIN_FRAME_LEVEL_OPENMAP_STITCH"), ART_RANGE,
-			fl:GetValidFrameLevel("PIN_FRAME_LEVEL_OPENMAP_ICONS"))
-		if mod.BuildFlights then mod:BuildFlights() end
-		if mod.BuildPaint then mod:BuildPaint() end
-		if mod.BuildSketch then mod:BuildSketch() end
-		if mod.BuildNav then mod:BuildNav() end
-		if mod.BuildMapPins then mod:BuildMapPins() end
-		mod:Refresh()
-		if t0 then ns.loadMs.build, ns.loadMs.builtShown = debugprofilestop() - t0, map:IsShown() end
+		local ahead = S.IsBuilt()
+		S.Build(BuildArgs())
+		repeat until BuildExtra()
+		if t0 and not ahead then ns.loadMs.build, ns.loadMs.builtShown = debugprofilestop() - t0, map:IsShown() end
 	end
 	Attach(self.mapID)
 	if not active then return end
@@ -857,6 +937,14 @@ local function OnCreateZoomLevels(self)
 	self.zoomLevels = levels
 	self.baseScale = levels[1].scale    -- panning allowed above the whole-world view
 	levelCount = #levels
+end
+
+-- combat over: the view the canvas refused in it (SetView), if that map is still the one up
+function mod.FlushWaitingView()
+	local w = waitingView
+	waitingView = nil
+	if not w or InCombatLockdown() or not active or anim or not map:IsShown() or map:GetMapID() ~= w.mapID then return end
+	SetView(w.scale, w.x, w.y)
 end
 
 -- Blizzard showed a map (opening, the quest log, the dropdown): show it as it would
@@ -1115,6 +1203,7 @@ end
 -- the map was grabbed (on it or on one of our icons)
 local function OnGrab()
 	userMoved = true
+	waitingView = nil                 -- (the view is the user's again: not put back where it was as combat ends)
 	if anim and anim.mode == "glide" then anim = nil end   -- a grab stops a glide where it is
 end
 
@@ -1312,7 +1401,7 @@ local function Setup()
 	local shown = Ours("map shown", function()
 		mod.instanceWorldBrowsing = nil
 		mod.instanceMapGeneration = (mod.instanceMapGeneration or 0) + 1
-		if not S.IsBuilt() and map:GetMapID() then sc:OnCanvasSizeChanged() end   -- built on first showing
+		if not (S.IsBuilt() and ExtrasBuilt()) and map:GetMapID() then sc:OnCanvasSizeChanged() end   -- built on first showing
 		mod:RefreshInstancePins()
 		if mod.instanceWorldHidden then ticker:Show() RaisePlayer() end
 		if active then
@@ -1341,6 +1430,11 @@ local function Setup()
 	Timed("Quests", mod.SetupQuests, mod, map)
 	Timed("Dungeons", mod.SetupDungeons, mod, map)
 	Timed("Combat", mod.SetupCombat, mod, map)
+	ns.RegisterEvent(viewOwner, "PLAYER_REGEN_ENABLED", mod.FlushWaitingView)
+	-- (the map built ahead once the loading screen is gone: Prebuild)
+	if not ns.RegisterEvent(prebuildOwner, "LOADING_SCREEN_DISABLED", PrebuildSoon) then
+		ns.RegisterEvent(prebuildOwner, "PLAYER_ENTERING_WORLD", PrebuildSoon)
+	end
 	Timed("News", mod.SetupNews, mod)
 	Timed("Panel", mod.SetupPanel, mod, map)
 	Timed("Paint", mod.SetupPaint, mod, map)

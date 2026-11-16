@@ -1,5 +1,20 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Fixed
+
+- **The map in combat**: opened, zoomed or panned in a fight, the map no longer comes up stretched
+  and half empty until the fight ends: it's drawn at the zoom the game kept, and the one you asked for
+  is put up as the fight ends. The window is no longer moved, sized or scaled in a fight (#294).
+
+- **Esc on a dungeon's map** goes back to the world map (out of combat) instead of closing the map.
+
+### Improved
+
+- **Faster loading**: the stitched map is built a few seconds after the loading screen, a few
+  milliseconds a frame, not during it.
+
 ## v0.8.9 (2026-11-14)
 
 ### New

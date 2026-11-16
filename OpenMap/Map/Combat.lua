@@ -51,14 +51,14 @@ local function DeferredPropagation(pin, ...)
 	return originalPropagation(pin, ...)
 end
 
+-- (both in one protected call: a sweep asks every global table, tens of thousands of them)
+local function Methods(t) return rawget(t, "CheckMouseButtonPassthrough"), rawget(t, "UpdateMousePropagation") end
 local function Point(t)
 	if type(t) ~= "table" then return end
-	local ok, method = pcall(rawget, t, "CheckMouseButtonPassthrough")   -- (a forbidden table: left alone)
-	if ok and method == original then t.CheckMouseButtonPassthrough = Deferred end
-	if originalPropagation then
-		ok, method = pcall(rawget, t, "UpdateMousePropagation")
-		if ok and method == originalPropagation then t.UpdateMousePropagation = DeferredPropagation end
-	end
+	local ok, passthrough, propagation = pcall(Methods, t)   -- (a forbidden table: left alone)
+	if not ok then return end
+	if passthrough == original then t.CheckMouseButtonPassthrough = Deferred end
+	if originalPropagation and propagation == originalPropagation then t.UpdateMousePropagation = DeferredPropagation end
 end
 
 local function PointPool(pool)
