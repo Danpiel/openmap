@@ -1,5 +1,26 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Improved
+
+- **A smoother map on a Brazilian Portuguese client**: the zones' art from further out is drawn from
+  tiles baked from the ptBR client's own maps, place names and city banners in Portuguese, as an English
+  client's has been (it was every zone's art drawn live: panning at mid zoom took about half the frame
+  time). Other languages draw it live as before, until their own tiles are baked. (New textures:
+  restart the game.)
+
+- **Less work while the map is closed**: the guild and friends lists are read at most every 30 seconds
+  (a raid's roster changes came each time), exploring somewhere recolours the map's art the next time
+  it opens rather than then, and another addon loading no longer looks through every global table
+  again.
+
+- **Smoother panning and zooming**: darkened unexplored land lets go of zones out of view (they were
+  laid out on every frame, more the more of the world you'd seen), and of a zone's old shading when
+  it's made again; the boat and zeppelin routes' finer dots are hidden, not only faded, from afar; the
+  continents' names rest their outer glow while the map moves; and the close-up minimap, the cursor's
+  place name and the coordinates skip work when nothing has changed.
+
 ## v0.8.9 (2026-11-14)
 
 ### New
