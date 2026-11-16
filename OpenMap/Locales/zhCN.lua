@@ -339,6 +339,7 @@ L["OpenMap's map with the Gamepad UI (test)"] = "在手柄界面中使用 OpenMa
 L["OpenMap's map with the controller (test)"] = "手柄使用OpenMap地图（测试）"
 L["OpenMap's maps of dungeons and raids: Blizzard's where the client has one, the ones drawn for WoW Forever's where it has none. Off: inside a dungeon the map stays the world map, and an entrance's card opens over it instead."] = "OpenMap的地下城和团队副本地图：客户端有的用暴雪的，没有的用为WoW Forever绘制的。关闭：在地下城内地图仍为世界地图，入口的卡片在其上打开。"
 L["OpenMap: zoom update %.1f ms, close-up %.1f ms (worst %.1f)"] = "OpenMap：缩放更新 %.1f ms，近景 %.1f ms（最差 %.1f）"
+L["Opening the map in a dungeon shows OpenMap's map of it. To turn that off: OpenMap's menu > Dungeons > Dungeon maps inside dungeons."] = "在地下城中打开地图会显示 OpenMap 的地下城地图。关闭方法：OpenMap 菜单 > 地下城 > 地下城内显示地下城地图。"
 L["Opening the map inside a dungeon or raid shows that dungeon's map. Off: the map opens there as the game's own would, and a dungeon's map still opens from its entrance on the world map. With Dungeon Journal installed, its map is left to it inside a dungeon it has a page for."] = "在地下城或团队副本内打开地图时显示该地下城的地图。关闭：在那里地图像游戏自带的一样打开，地下城的地图仍可从世界地图上的入口打开。安装了 Dungeon Journal 时，在它有页面的地下城内，地图交给它显示。"
 L["Or right-click the map, or press Escape"] = "或右键点击地图，或按Esc"
 L["Other addons"] = "其他插件"

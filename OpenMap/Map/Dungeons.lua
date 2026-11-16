@@ -25,7 +25,6 @@ d.dungeonCard = true            -- the card open (false: folded to its title)
 d.dungeonLevels = true          -- each entrance's level range under its icon
 d.dungeonHints = 0              -- dungeon maps opened with the how-to-leave hint (it shows for the first few)
 d.dungeonTab = "floors"         -- the dungeon map's side panel: floors, bosses, quests or loot
-d.dungeonDockTab = "quests"     -- the tab picked beside the quest log on a dungeon's map: "dungeon" or "quests"
 d.dungeonInside = true          -- the map opened inside a dungeon shows its map (off: as the game would)
 d.entrances = {}                -- lines /openmap entrance recorded, to paste into build.py
 d.bossPlaced = {}               -- bosses placed with /openmap bosses: [instance key][boss] = { floor, x, y }
@@ -587,7 +586,6 @@ local function BuildView()
 			if log and log:IsVisible() then
 				if view.dockTab == self.key then return end
 				view.dockTab = self.key
-				mod.db.dungeonDockTab = self.key   -- (kept: the next dungeon's map opens at it too)
 				Sound("IG_CHARACTER_INFO_TAB")
 				Dock()
 				return
@@ -1147,7 +1145,9 @@ local function OpenView(inst, pin)
 	view.leaving = nil
 	view:SetAlpha(1)
 	view:Show()
-	view.dockTab = mod.db.dungeonDockTab == "dungeon" and "dungeon" or "quests"   -- (the tab last picked)
+	-- (beside the quest log, always your quests first: the dungeon's panel only when you pick its tab, for this
+	-- map. It covered the quest log every time, the tab once picked being kept: players' reports)
+	view.dockTab = "quests"
 	Dock()
 	view.floor = nil
 	ShowFloor(first, true)
@@ -2342,6 +2342,15 @@ local function NoteEntered()
 	mod.char.entered[inst[1]] = true
 	if S.RefreshFound then S.RefreshFound() end
 end
+-- the first dungeon you're in, once per account: where OpenMap's map of it can be turned off (players hunted
+-- for the switch). Not where Dungeon Journal's or NeedRoll's map is left to them, nor with it off already
+local function NoteDungeonMap()
+	local inst = InstanceHere()
+	if not inst or mod.db.dungeonMapNoted or not MapsOn() or mod.db.dungeonInside == false then return end
+	if JournalName(inst) or NeedRoll() then return end
+	mod.db.dungeonMapNoted = true
+	ns:Print(L["Opening the map in a dungeon shows OpenMap's map of it. To turn that off: OpenMap's menu > Dungeons > Dungeon maps inside dungeons."])
+end
 function S.Entered(pin)
 	local seen = mod.char and mod.char.entered
 	if not seen or not pin.instances then return false end
@@ -2440,8 +2449,7 @@ function mod:SetupDungeons(worldMap)
 		if not (view and view:IsShown()) then return end
 		if pick then
 			-- (opened from one of the tabs: that one, kept; else the tab last picked)
-			if view.wantTab then mod.db.dungeonDockTab = view.wantTab end
-			view.dockTab = mod.db.dungeonDockTab == "dungeon" and "dungeon" or "quests"
+			view.dockTab = view.wantTab or view.dockTab or "quests"
 		end
 		Dock()
 		FillSide()
@@ -2489,7 +2497,7 @@ function mod:SetupDungeons(worldMap)
 			if not inst or not MapsOn() or mod.db.dungeonInside == false then return end   -- (Dungeon maps inside dungeons)
 			-- (Dungeon Journal shows its own map of the dungeon you're in, its bosses on it: OpenMap's isn't put
 			-- over it as the map opens there, #302. An entrance clicked on the world map still opens OpenMap's)
-			if JournalName(inst) then return end
+			if JournalName(inst) or NeedRoll() then return end   -- (and NeedRoll's, its own map in dungeons: #267)
 			local id = DungeonMap(inst)
 			if not id then OpenView(inst, nil) elseif map:GetMapID() ~= id then S.OpenMap(id) end
 		end)
@@ -2517,7 +2525,7 @@ function mod:SetupDungeons(worldMap)
 		C_Timer.After(0, function() Recolour() RefreshCard() end)   -- (UnitLevel catches up after the event)
 	end)
 	-- (into a dungeon or out: its floors held, or let go; a moment after the loading screen)
-	local function Rehold() C_Timer.After(2, function() mod.HoldDungeonHere() NoteEntered() end) end
+	local function Rehold() C_Timer.After(2, function() mod.HoldDungeonHere() NoteEntered() NoteDungeonMap() end) end
 	ns.RegisterEvent(events, "PLAYER_ENTERING_WORLD", Rehold)
 	ns.RegisterEvent(events, "ZONE_CHANGED_NEW_AREA", Rehold)
 	Rehold()                                      -- (set up already inside one)
