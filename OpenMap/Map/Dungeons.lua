@@ -25,7 +25,8 @@ d.dungeonCard = true            -- the card open (false: folded to its title)
 d.dungeonLevels = true          -- each entrance's level range under its icon
 d.dungeonHints = 0              -- dungeon maps opened with the how-to-leave hint (it shows for the first few)
 d.dungeonTab = "floors"         -- the dungeon map's side panel: floors, bosses, quests or loot
-d.dungeonDockTab = "dungeon"    -- the tab picked beside the quest log on a dungeon's map: "dungeon" or "quests"
+d.dungeonDockTab = "quests"     -- the tab picked beside the quest log on a dungeon's map: "dungeon" or "quests"
+d.dungeonInside = true          -- the map opened inside a dungeon shows its map (off: as the game would)
 d.entrances = {}                -- lines /openmap entrance recorded, to paste into build.py
 d.bossPlaced = {}               -- bosses placed with /openmap bosses: [instance key][boss] = { floor, x, y }
 
@@ -1146,7 +1147,7 @@ local function OpenView(inst, pin)
 	view.leaving = nil
 	view:SetAlpha(1)
 	view:Show()
-	view.dockTab = mod.db.dungeonDockTab == "quests" and "quests" or "dungeon"   -- (the tab last picked)
+	view.dockTab = mod.db.dungeonDockTab == "dungeon" and "dungeon" or "quests"   -- (the tab last picked)
 	Dock()
 	view.floor = nil
 	ShowFloor(first, true)
@@ -2292,6 +2293,8 @@ function mod:DungeonOptions(opts, get, set, off)
 	opts.dungeonMaps = { type = "toggle", name = L["Dungeon maps"], order = 31.02, width = "full", get = get, disabled = off,
 		set = function(_, v) mod.SetDungeonMaps(v) end,
 		desc = L["OpenMap's maps of dungeons and raids: Blizzard's where the client has one, the ones drawn for WoW Forever's where it has none. Off: inside a dungeon the map stays the world map, and an entrance's card opens over it instead."] }
+	opts.dungeonInside = { type = "toggle", name = L["Dungeon maps inside dungeons"], order = 31.025, width = "full", get = get, set = set, disabled = off,
+		desc = L["Opening the map inside a dungeon or raid shows that dungeon's map. Off: the map opens there as the game's own would, and a dungeon's map still opens from its entrance on the world map. With Dungeon Journal installed, its map is left to it inside a dungeon it has a page for."] }
 	opts.dungeonBosses = { type = "toggle", name = L["Dungeon maps: bosses"], order = 31.1, width = "full", get = get, set = set, disabled = off,
 		desc = L["A dungeon's map lists its bosses, in the game's order, and pins where they are."] }
 	opts.dungeonMinimap = { type = "toggle", name = L["Dungeon maps from the minimap"], order = 31.03, width = "full", get = get, disabled = off,
@@ -2438,7 +2441,7 @@ function mod:SetupDungeons(worldMap)
 		if pick then
 			-- (opened from one of the tabs: that one, kept; else the tab last picked)
 			if view.wantTab then mod.db.dungeonDockTab = view.wantTab end
-			view.dockTab = mod.db.dungeonDockTab == "quests" and "quests" or "dungeon"
+			view.dockTab = mod.db.dungeonDockTab == "dungeon" and "dungeon" or "quests"
 		end
 		Dock()
 		FillSide()
@@ -2483,7 +2486,7 @@ function mod:SetupDungeons(worldMap)
 				here = info.parentMapID
 			end
 			local inst = InstanceHere()
-			if not inst or not MapsOn() then return end
+			if not inst or not MapsOn() or mod.db.dungeonInside == false then return end   -- (Dungeon maps inside dungeons)
 			-- (Dungeon Journal shows its own map of the dungeon you're in, its bosses on it: OpenMap's isn't put
 			-- over it as the map opens there, #302. An entrance clicked on the world map still opens OpenMap's)
 			if JournalName(inst) then return end

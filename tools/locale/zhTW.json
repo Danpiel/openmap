@@ -544,5 +544,7 @@
  "Hide world markers in instances": "在副本中隱藏世界地圖標記",
  "In dungeons, raids and battlegrounds, temporarily hide OpenMap's friends, guild, transport and world quest markers. Party and raid members and other addons' maps and markers stay visible. Your marker settings are kept.": "在地城、團隊副本和戰場中，暫時隱藏 OpenMap 的好友、公會、交通和世界地圖任務標記。隊伍和團隊成員以及其他插件的地圖和標記仍然可見。保留原有的標記設定。",
  "ClassicUI Forever's World map option is on. It lays out the world map window itself, which is known to cause problems with OpenMap: the window can't be resized or moved, and in combat parts of the map can go missing.\n\nTurn that option off? Your interface will reload.": "ClassicUI Foreverçš„ã€Œä¸–ç•Œåœ°åœ–ã€é¸é …å·²é–‹å•Ÿã€‚å®ƒæœƒè‡ªè¡Œé…ç½®ä¸–ç•Œåœ°åœ–è¦–çª—ï¼Œå·²çŸ¥æœƒèˆ‡OpenMapç”¢ç”Ÿå•é¡Œï¼šè¦–çª—ç„¡æ³•èª¿æ•´å¤§å°æˆ–ç§»å‹•ï¼Œæˆ°é¬¥ä¸­åœ°åœ–çš„éƒ¨åˆ†å€åŸŸå¯èƒ½æ¶ˆå¤±ã€‚\n\nè¦é—œé–‰æ­¤é¸é …å—Žï¼Ÿä½ çš„ä»‹é¢å°‡é‡æ–°è¼‰å…¥ã€‚",
- "Kept as it is. You can turn it off any time in ClassicUI Forever's options (World map).": "ä¿æŒä¸è®Šã€‚ä½ å¯ä»¥éš¨æ™‚åœ¨ClassicUI Foreverçš„é¸é …ï¼ˆä¸–ç•Œåœ°åœ–ï¼‰ä¸­é—œé–‰å®ƒã€‚"
+ "Kept as it is. You can turn it off any time in ClassicUI Forever's options (World map).": "ä¿æŒä¸è®Šã€‚ä½ å¯ä»¥éš¨æ™‚åœ¨ClassicUI Foreverçš„é¸é …ï¼ˆä¸–ç•Œåœ°åœ–ï¼‰ä¸­é—œé–‰å®ƒã€‚",
+ "Dungeon maps inside dungeons": "地城內顯示地城地圖",
+ "Opening the map inside a dungeon or raid shows that dungeon's map. Off: the map opens there as the game's own would, and a dungeon's map still opens from its entrance on the world map. With Dungeon Journal installed, its map is left to it inside a dungeon it has a page for.": "在地城或團隊副本內打開地圖時顯示該地城的地圖。關閉：在那裡地圖像遊戲內建的一樣打開，地城的地圖仍可從世界地圖上的入口打開。安裝了 Dungeon Journal 時，在它有頁面的地城內，地圖交給它顯示。"
 }
