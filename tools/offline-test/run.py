@@ -106,6 +106,19 @@ steps = L.eval("""function(ns, scenario)
         C_Map.GetMapInfoAtPosition = real
         if not okn then ERRORS[#ERRORS + 1] = "NaN view: " .. tostring(en) end
     end
+    -- logging out: no NaN or infinite number left in the saved settings, which the game can't read back
+    -- (the whole file lost: every setting reset, #306); the rest kept
+    do
+        local db, cdb = OpenMapDB.worldmap, OpenMapCharDB.worldmap
+        local keepScale = db.windowScale
+        db.windowSize, db.scrubTest, cdb.scrubTest = { 0 / 0, 600 }, { 1 / 0, keep = 3 }, -1 / 0
+        FireEvent("PLAYER_LOGOUT")
+        if db.windowSize[1] ~= nil or db.windowSize[2] ~= 600 or db.scrubTest[1] ~= nil or db.scrubTest.keep ~= 3
+            or cdb.scrubTest ~= nil or db.windowScale ~= keepScale then
+            ERRORS[#ERRORS + 1] = "saved settings: a NaN or infinite number left in them at logout"
+        end
+        db.windowSize, db.scrubTest, cdb.scrubTest = false, nil, nil
+    end
     for _, cmd in ipairs({ "status", "paint", "news", "forgetflights" }) do
         local ok2, e2 = pcall(SlashCmdList.OPENMAP, cmd)
         if not ok2 then ERRORS[#ERRORS + 1] = "slash " .. cmd .. ": " .. tostring(e2) end

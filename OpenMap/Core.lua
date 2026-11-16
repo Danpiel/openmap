@@ -148,6 +148,24 @@ function ns:InitDB()
 		OpenMapCharDB[key] = OpenMapCharDB[key] or {}
 		mod.db, mod.char = OpenMapDB[key], OpenMapCharDB[key]
 	end
+	-- (and as you log out: a NaN or infinite number in the saved settings is written as text the game can't
+	-- read back, and the whole file is lost, every setting back to its default on the next login: #306)
+	if not ns.scrubOwner then
+		ns.scrubOwner = {}
+		ns.RegisterEvent(ns.scrubOwner, "PLAYER_LOGOUT", function() ns.ScrubSaved(OpenMapDB) ns.ScrubSaved(OpenMapCharDB) end)
+	end
+end
+
+-- every number in a saved table (and the tables in it) that isn't finite, removed
+function ns.ScrubSaved(t, seen)
+	if type(t) ~= "table" then return end
+	seen = seen or {}
+	if seen[t] then return end
+	seen[t] = true
+	for k, v in pairs(t) do
+		if type(v) == "number" and not Safe.Finite(v) then t[k] = nil
+		elseif type(v) == "table" then ns.ScrubSaved(v, seen) end
+	end
 end
 
 function ns:EnableModules()
