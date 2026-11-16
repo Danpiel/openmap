@@ -64,6 +64,10 @@
 - **Learned flight masters in green**: they were your faction's icon, red for the Horde, which read as
   not learned. They're the game's flight map green now, greyed where not learned.
 
+- **The world map reopens where you left it inside a dungeon**: with any reopen choice but Always
+  remember, browsing the world map in a dungeon and opening it again went back to the whole continent
+  each time. With nowhere to centre on, it reopens where you left it now.
+
 ### Improved
 
 - **A dungeon's map never covers your quest log**: beside the quest log it always opens on your quests;
