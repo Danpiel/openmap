@@ -106,6 +106,11 @@ steps = L.eval("""function(ns, scenario)
         C_Map.GetMapInfoAtPosition = real
         if not okn then ERRORS[#ERRORS + 1] = "NaN view: " .. tostring(en) end
     end
+    -- the map's frame rate cap: off by default, the game's own limit kept (a 60 cap held a 144 fps game at
+    -- 60 while the map was open, #273)
+    if (ns.modules.worldmap.db.mapFpsCap or 0) ~= 0 then
+        ERRORS[#ERRORS + 1] = "map frame rate cap: " .. tostring(ns.modules.worldmap.db.mapFpsCap) .. " by default, not the game's own limit"
+    end
     -- logging out: no NaN or infinite number left in the saved settings, which the game can't read back
     -- (the whole file lost: every setting reset, #306); the rest kept
     do
