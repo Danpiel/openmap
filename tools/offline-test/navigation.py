@@ -112,14 +112,23 @@ class NavigationTests(unittest.TestCase):
             assert(mod.SavedView() == .5)
         """)
 
-    def test_unknown_position_and_explicit_quest_map_do_not_restore(self):
+    def test_no_position_reopens_where_you_left_it_but_a_quest_map_never(self):
+        # (inside a dungeon there's nowhere to centre on: the view you left the map at, whatever the choice,
+        # not Blizzard's whole continent each time; a map put up for a quest still shows as Blizzard shows it)
         self.lua.execute("""
-            mod.db.reopenView = 'visible'
-            mod:OnMapHidden()
-            playerU = nil
-            assert(mod.SavedView() == nil)
+            for _, mode in ipairs({ 'visible', 'player', 'zoom', 'inzone' }) do
+                mod.db.reopenView = mode
+                playerU = .5
+                mod:OnMapHidden()
+                playerU = nil
+                local u, v, zoom = mod.SavedView()
+                assert(u == .5 and v == .5 and zoom == 4, mode)
+                assert(mod.SavedView(999) == nil, mode)
+            end
             playerU = .5
-            assert(mod.SavedView(999) == nil)
+            mod.db.reopenView = 'player'
+            local u, v, zoom = mod.SavedView()
+            assert(zoom == 8)                       -- (a position again: centred on you, at your zone's fit)
         """)
 
     def test_always_mode_restores_across_zones_outside_previous_view(self):
